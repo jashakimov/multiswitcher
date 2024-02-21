@@ -83,9 +83,9 @@ func main() {
 	// Запускаем бесконечный цикл для анализа каждого пакета
 	for packet := range packetSource.Packets() {
 		// Печатаем информацию о пакете
-		fmt.Printf("Время: %s\n", packet.Metadata().Timestamp)
+		//fmt.Printf("Время: %s\n", packet.Metadata().Timestamp)
 		fmt.Printf("Длина: %d байт\n", packet.Metadata().Length)
-		fmt.Printf("Данные: %v\n", string(packet.Data()))
+		//fmt.Printf("Данные: %v\n", string(packet.Data()))
 		fmt.Println("------------------------")
 	}
 
