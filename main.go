@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
 	_ "github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/vishvananda/netlink"
@@ -82,11 +83,15 @@ func main() {
 
 	// Запускаем бесконечный цикл для анализа каждого пакета
 	for packet := range packetSource.Packets() {
-		// Печатаем информацию о пакете
-		//fmt.Printf("Время: %s\n", packet.Metadata().Timestamp)
-		fmt.Printf("Длина: %d байт\n", packet.Metadata().Length)
-		//fmt.Printf("Данные: %v\n", string(packet.Data()))
-		fmt.Println("------------------------")
+		ipLayer := packet.Layer(layers.LayerTypeIPv4)
+		if ipLayer != nil {
+			ip, _ := ipLayer.(*layers.IPv4)
+			fmt.Printf("From %s to %s\n", ip.SrcIP, ip.DstIP)
+			fmt.Println("Protocol: ", ip.Protocol)
+			fmt.Println("Bytes: ", ip.Length)
+			fmt.Println("Info: ", ip)
+			fmt.Println()
+		}
 	}
 
 	time.Sleep(time.Hour)
