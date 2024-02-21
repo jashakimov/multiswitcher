@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  golang-app:
+    image: go
+    user: root
+    privileged: true
+    container_name: my-golang-app
+    working_dir: /app
+    expose:
+      - "3000:3000"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./cfg.json:/cfg.json
+
+volumes:
+  data:

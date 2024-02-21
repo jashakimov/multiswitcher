@@ -1,0 +1,16 @@
+{
+    "interface": "lo",
+    "statsFrequencySec": 1,
+    "switch": false,
+    "filter": {
+        "route": "233.0.0.1",
+        "master": {
+            "ip": "127.0.0.5",
+            "priority": 10
+        },
+        "slave": {
+            "ip": "127.0.0.3",
+            "priority": 11
+        }
+    }
+}
