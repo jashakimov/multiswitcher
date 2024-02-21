@@ -89,7 +89,7 @@ func main() {
 			fmt.Printf("From %s to %s\n", ip.SrcIP, ip.DstIP)
 			fmt.Println("Protocol: ", ip.Protocol)
 			fmt.Println("Bytes: ", ip.Length)
-			fmt.Println("Info: ", ip)
+			//fmt.Println("Info: ", ip)
 			fmt.Println()
 		}
 	}
