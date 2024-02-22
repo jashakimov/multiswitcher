@@ -12,8 +12,11 @@ import (
 	"golang.org/x/sys/unix"
 	"log"
 	"net"
+	"os"
 	"os/exec"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 )
 
@@ -24,29 +27,26 @@ func main() {
 	if fileConfig == "" {
 		fmt.Println("No file directory")
 	}
-
+	/////////////////////////////////////////////////////////////
 	cfg := NewConfig(fileConfig)
+
+	printConfig(cfg)
 
 	lo, err := netlink.LinkByName(cfg.Interface)
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 
 	log.Printf("Установка мультикаста на интерфейс: %s\n", cfg.Interface)
 	// установка мултикаста
 	if err := LinkSetMulticast(lo); err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 
 	log.Printf("Установка промискуитетного режима на интерфейс: %s\n", cfg.Interface)
 	// установка промискуитетного режима
 	if err := netlink.SetPromiscOn(lo); err != nil {
-		fmt.Println(err)
-	}
-	log.Printf("Установка маршрутизации %s на интерфейс: %s\n", cfg.Filter.Route, cfg.Interface)
-	// установка маршрутизации
-	if err := Route(lo, cfg.Filter.Route); err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 
 	log.Printf("Установка qdisc на интерфейс: %s\n", cfg.Interface)
@@ -55,23 +55,13 @@ func main() {
 		fmt.Println(err)
 	}
 
-	// установка мастер-фильтра
-	AddMasterFilter(lo, cfg)
-	go func() {
-		if cfg.Switch {
-			ticker := time.NewTicker(cfg.StatFrequencySec * time.Second)
-			t := true
-			for range ticker.C {
-				fmt.Print(lo.Attrs().Statistics)
-
-				tumbler(t, lo, cfg)
-				t = !t
-			}
-		}
-	}()
+	// установка маршрутизации роутеров
+	if err := Route(lo, cfg.Filters); err != nil {
+		panic(err)
+	}
 
 	// Открываем сетевой интерфейс для захвата пакетов
-	handle, err := pcap.OpenLive(cfg.Interface, 1600, true, time.Second*3)
+	handle, err := pcap.OpenLive(cfg.Interface, 1024, true, time.Second*1)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -79,86 +69,119 @@ func main() {
 
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 
-	fmt.Println("Отслеживание трафика. Для выхода нажмите Ctrl+C.")
+	log.Println("Установка мастер фильтров")
+	for _, filter := range cfg.Filters {
+		// установка мастер фильтров по умолчанию
+		AddFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
 
-	// Запускаем бесконечный цикл для анализа каждого пакета
-	for packet := range packetSource.Packets() {
-		ipLayer := packet.Layer(layers.LayerTypeIPv4)
-		if ipLayer != nil {
-			ip, _ := ipLayer.(*layers.IPv4)
-			fmt.Printf("From %s to %s\n", ip.SrcIP, ip.DstIP)
-			fmt.Println("Protocol: ", ip.Protocol)
-			fmt.Println("Bytes: ", ip.Length)
-			//fmt.Println("Info: ", ip)
-			fmt.Println()
-		}
+		go func(fil Filter) {
+			for packet := range packetSource.Packets() {
+				ipLayer := packet.Layer(layers.LayerTypeIPv4)
+				if ipLayer != nil {
+					if ip, ok := ipLayer.(*layers.IPv4); ok {
+						switch string(ip.SrcIP) {
+						case fil.Master.IP:
+							log.Println("master ip:", fil.Master.IP, "bytes length:", ip.Length)
+
+							// если автоматическое переключение выключено, ничего не делаем
+							if !fil.AutoSwitch {
+								continue
+							}
+
+							var bytesLength uint16
+							var tries int
+							// если предыдущее кол-во байтов больше, то вклчается логика переключения
+							if bytesLength > ip.Length {
+								// если поток не восстановился за текущее кол-во попыток, переключаем на slave
+								if tries == fil.SwitchTries {
+									// удаляем master filter
+									DelFilter(cfg.Interface, fil.Master.Priority, fil.Master.IP, fil.Route)
+									// добавляем slave fitler
+									AddFilter(cfg.Interface, fil.Slave.Priority, fil.Slave.IP, fil.Route)
+									// обнуляем счетчики
+									bytesLength = 0
+									tries = 0
+								}
+								tries++
+							}
+
+							bytesLength = ip.Length
+						case fil.Slave.IP:
+							log.Println("slave ip:", fil.Slave.IP, "bytes length:", ip.Length)
+						}
+					}
+				}
+				time.Sleep(time.Duration(fil.StatFrequencySec) * time.Second)
+			}
+		}(filter)
 	}
 
-	time.Sleep(time.Hour)
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	<-c
 }
 
-func tumbler(b bool, lnk netlink.Link, cfg *Config) {
-	if b {
-		fmt.Println("Set master")
-		AddMasterFilter(lnk, cfg)
-		DelSlaveFilter(lnk, cfg)
-	} else {
-		fmt.Println("Set slave")
-		DelMasterFilter(lnk, cfg)
-		AddSlaveFilter(lnk, cfg)
+func printConfig(cfg *Config) {
+	fmt.Println("Total pairs:", len(cfg.Filters), "for Interface:", cfg.Interface)
+	for i, filter := range cfg.Filters {
+		fmt.Printf(" %d) masterIP: '%s', slaveIP: '%s', changeIP: '%s', tries before switch: '%d'\n",
+			i+1,
+			filter.Master.IP,
+			filter.Slave.IP,
+			filter.Route,
+			filter.SwitchTries,
+		)
 	}
 }
 
-func AddMasterFilter(lnk netlink.Link, cfg *Config) {
+//func listenInterface(interfaceName string) {
+//	// Открываем сетевой интерфейс для захвата пакетов
+//	handle, err := pcap.OpenLive(interfaceName, 1024, true, time.Second*3)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	defer handle.Close()
+//
+//	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
+//
+//	fmt.Println("Отслеживание трафика. Для выхода нажмите Ctrl+C.")
+//
+//	// Запускаем бесконечный цикл для анализа каждого пакета
+//	for packet := range packetSource.Packets() {
+//		ipLayer := packet.Layer(layers.LayerTypeIPv4)
+//		if ipLayer != nil {
+//			ip, _ := ipLayer.(*layers.IPv4)
+//			fmt.Printf("From %s to %s\n", ip.SrcIP, ip.DstIP)
+//			fmt.Println("Protocol: ", ip.Protocol)
+//			fmt.Println("Bytes: ", ip.Length)
+//		}
+//	}
+//}
+
+func AddFilter(interfaceName string, priority int, ip, route string) {
 	cmd := exec.Command(
-		"tc", "filter", "add", "dev", lnk.Attrs().Name, "parent", "ffff:",
+		"tc", "filter", "add", "dev", interfaceName, "parent", "ffff:",
 		"protocol", "ip",
-		"prio", strconv.Itoa(cfg.Filter.Master.Priority), "u32",
-		"match", "ip", "dst", cfg.Filter.Master.IP,
-		"action", "nat", "ingress", cfg.Filter.Master.IP, cfg.Filter.Route,
+		"prio", strconv.Itoa(priority), "u32",
+		"match", "ip", "dst", ip,
+		"action", "nat", "ingress", ip, route,
 	)
 	log.Println("Выполнение команды:", cmd.String())
 	if _, err := cmd.Output(); err != nil {
 		log.Println("Ошибка добавление мастер-фильтра")
 	}
 }
-func DelMasterFilter(lnk netlink.Link, cfg *Config) {
+func DelFilter(interfaceName string, priority int, ip, route string) {
 	cmd := exec.Command(
-		"tc", "filter", "delete", "dev", lnk.Attrs().Name, "parent", "ffff:",
+		"tc", "filter", "delete", "dev", interfaceName, "parent", "ffff:",
 		"protocol", "ip",
-		"prio", strconv.Itoa(cfg.Filter.Master.Priority), "u32",
-		"match", "ip", "dst", cfg.Filter.Master.IP,
-		"action", "nat", "ingress", cfg.Filter.Master.IP, cfg.Filter.Route,
+		"prio", strconv.Itoa(priority), "u32",
+		"match", "ip", "dst", ip,
+		"action", "nat", "ingress", ip, route,
 	)
 	log.Println("Выполнение команды:", cmd.String())
 	if _, err := cmd.Output(); err != nil {
 		log.Println("Ошибка удаления master-фильтра: filter does not exist")
-	}
-}
-func AddSlaveFilter(lnk netlink.Link, cfg *Config) {
-	cmd := exec.Command(
-		"tc", "filter", "add", "dev", lnk.Attrs().Name, "parent", "ffff:",
-		"protocol", "ip",
-		"prio", strconv.Itoa(cfg.Filter.Slave.Priority), "u32",
-		"match", "ip", "dst", cfg.Filter.Slave.IP,
-		"action", "nat", "ingress", cfg.Filter.Slave.IP, cfg.Filter.Route,
-	)
-	log.Println("Выполнение команды:", cmd.String())
-	if _, err := cmd.Output(); err != nil {
-		log.Println("Ошибка добавления slave-фильтра")
-	}
-}
-func DelSlaveFilter(lnk netlink.Link, cfg *Config) {
-	cmd := exec.Command(
-		"tc", "filter", "delete", "dev", lnk.Attrs().Name, "parent", "ffff:",
-		"protocol", "ip",
-		"prio", strconv.Itoa(cfg.Filter.Slave.Priority), "u32",
-		"match", "ip", "dst", cfg.Filter.Slave.IP,
-		"action", "nat", "ingress", cfg.Filter.Slave.IP, cfg.Filter.Route,
-	)
-	log.Println("Выполнение команды:", cmd.String())
-	if _, err := cmd.Output(); err != nil {
-		log.Println("Ошибка удаления slave-фильтра: filter does not exist")
 	}
 }
 
@@ -174,9 +197,9 @@ func SetIngressQDisc(lnk netlink.Link) interface{} {
 	return netlink.QdiscAdd(qDisc)
 }
 
-func Route(lnk netlink.Link, ips ...string) error {
-	for _, ip := range ips {
-		ipParsed := net.ParseIP(ip)
+func Route(lnk netlink.Link, filters []Filter) error {
+	for _, filter := range filters {
+		ipParsed := net.ParseIP(filter.Route)
 
 		route := &netlink.Route{
 			Dst: &net.IPNet{
@@ -193,6 +216,7 @@ func Route(lnk netlink.Link, ips ...string) error {
 		if err := netlink.RouteAdd(route); err != nil {
 			return err
 		}
+		log.Printf("Установка маршрутизации %s на интерфейс: %s\n", filter.Route, lnk.Attrs().Name)
 	}
 
 	return nil

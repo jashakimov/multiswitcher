@@ -1,5 +1,4 @@
-FROM ubuntu
-
+FROM --platform=linux/amd64 ubuntu
 # Установка необходимых пакетов
 RUN apt-get update && \
     apt-get install -y \
@@ -25,3 +24,5 @@ RUN wget https://golang.org/dl/go1.20.linux-amd64.tar.gz && \
 ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH="/go"
 ENV PATH="${GOPATH}/bin:${PATH}"
+ENV DOCKER_DEFAULT_PLATFORM=linux/amd64
+

@@ -4,20 +4,20 @@ import (
 	"encoding/json"
 	"io"
 	"os"
-	"time"
 )
 
 type Config struct {
-	Interface        string        `json:"interface"`
-	StatFrequencySec time.Duration `json:"statsFrequencySec"`
-	Filter           Filter        `json:"filter"`
-	Switch           bool          `json:"switch"`
+	Interface string   `json:"interface"`
+	Filters   []Filter `json:"filters"`
 }
 
 type Filter struct {
-	Route  string `json:"route,omitempty"`
-	Master Info   `json:"master,omitempty"`
-	Slave  Info   `json:"slave,omitempty"`
+	StatFrequencySec int    `json:"statsFrequencySec"`
+	Route            string `json:"route,omitempty"`
+	SwitchTries      int    `json:"switchTries,omitempty"`
+	AutoSwitch       bool   `json:"autoSwitch"`
+	Master           Info   `json:"master,omitempty"`
+	Slave            Info   `json:"slave,omitempty"`
 }
 
 type Info struct {
