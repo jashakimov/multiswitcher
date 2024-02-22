@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"github.com/google/gopacket"
@@ -17,6 +16,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -61,13 +61,7 @@ func main() {
 		panic(err)
 	}
 
-	go func() {
-		t := time.NewTicker(time.Second)
-		for range t.C {
-			fmt.Println(lo.Attrs())
-			fmt.Println()
-		}
-	}()
+	listenInterface(cfg, lo)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -87,7 +81,7 @@ func printConfig(cfg *Config) {
 	}
 }
 
-func er(cfg Config, lo netlink.Link) {
+func listenInterface(cfg *Config, lo netlink.Link) {
 	// Открываем сетевой интерфейс для захвата пакетов
 	handle, err := pcap.OpenLive(cfg.Interface, 1024, true, time.Second*1)
 	if err != nil {
@@ -105,21 +99,23 @@ func er(cfg Config, lo netlink.Link) {
 		AddFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
 
 		go func(fil Filter) {
-			bytesMasterIP := []byte(fil.Master.IP)
-			bytesSlaveIP := []byte(fil.Slave.IP)
-
 			for packet := range packetSource.Packets() {
 				ipLayer := packet.Layer(layers.LayerTypeIPv4)
 				if ipLayer != nil {
 					if ip, ok := ipLayer.(*layers.IPv4); ok {
 
-						fmt.Printf("Packet IP format source %s, dest %s\n", ip.SrcIP, ip.DstIP)
-						fmt.Printf("Config IP format master %s\n", bytesMasterIP)
-						fmt.Printf("Master eq %v, slave eq %v\n", bytes.Compare(ip.DstIP, bytesMasterIP), bytes.Compare(ip.DstIP, bytesSlaveIP))
+						isMaster := strings.Compare(ip.DstIP.String(), fil.Master.IP) == 0
+						isSlave := strings.Compare(ip.DstIP.String(), fil.Slave.IP) != 0
+
+						fmt.Printf("Packet IP format source %s, dest %s\n", ip.SrcIP.String(), ip.DstIP.String())
+						fmt.Printf("Master eq %v, slave eq %v\n",
+							isMaster,
+							isSlave,
+						)
 
 						switch {
-						case bytes.Compare(ip.DstIP, bytesMasterIP) == 0:
-							log.Println("master ip:", fil.Master.IP, "bytes length:", ip.Length)
+						case isMaster:
+							log.Println("master ip:", fil.Master.IP, "content length:", len(ip.Contents))
 
 							// если автоматическое переключение выключено, ничего не делаем
 							if !fil.AutoSwitch {
@@ -144,8 +140,8 @@ func er(cfg Config, lo netlink.Link) {
 							}
 
 							bytesLength = ip.Length
-						case bytes.Compare(ip.DstIP, bytesSlaveIP) != 0:
-							log.Println("slave ip:", fil.Slave.IP, "bytes length:", ip.Length)
+						case isSlave:
+							log.Println("master ip:", fil.Master.IP, "content length:", len(ip.Contents))
 						}
 					}
 				}
