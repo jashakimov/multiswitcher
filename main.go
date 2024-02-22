@@ -86,7 +86,7 @@ func main() {
 						parsedDstIP := net.ParseIP(string(ip.DstIP))
 						parsedSrcIP := net.ParseIP(string(ip.SrcIP))
 
-						fmt.Printf("Packet IP format source %s, dest %s\n", parsedSrcIP, parsedDstIP)
+						fmt.Printf("Packet IP format source %s, dest %s\n", parsedSrcIP.String(), parsedDstIP.String())
 						fmt.Printf("Config IP format master %s\n", parsedMasterIP.String())
 						fmt.Printf("Master eq %v, slave eq %v\n", parsedMasterIP.Equal(parsedDstIP), parsedSlaveIP.Equal(parsedDstIP))
 
