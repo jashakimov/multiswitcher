@@ -61,27 +61,6 @@ func main() {
 		panic(err)
 	}
 
-	listenInterface(cfg, lo)
-
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	<-c
-}
-
-func printConfig(cfg *Config) {
-	fmt.Println("Total pairs:", len(cfg.Filters), "for Interface:", cfg.Interface)
-	for i, filter := range cfg.Filters {
-		fmt.Printf(" %d) masterIP: '%s', slaveIP: '%s', changeIP: '%s', tries before switch: '%d'\n",
-			i+1,
-			filter.Master.IP,
-			filter.Slave.IP,
-			filter.Route,
-			filter.SwitchTries,
-		)
-	}
-}
-
-func listenInterface(cfg *Config, lo netlink.Link) {
 	// Открываем сетевой интерфейс для захвата пакетов
 	handle, err := pcap.OpenLive(cfg.Interface, 1024, true, time.Second*1)
 	if err != nil {
@@ -103,7 +82,6 @@ func listenInterface(cfg *Config, lo netlink.Link) {
 				ipLayer := packet.Layer(layers.LayerTypeIPv4)
 				if ipLayer != nil {
 					if ip, ok := ipLayer.(*layers.IPv4); ok {
-
 						isMaster := strings.Compare(ip.DstIP.String(), fil.Master.IP) == 0
 						isSlave := strings.Compare(ip.DstIP.String(), fil.Slave.IP) != 0
 
@@ -149,6 +127,27 @@ func listenInterface(cfg *Config, lo netlink.Link) {
 			}
 		}(filter)
 	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	<-c
+}
+
+func printConfig(cfg *Config) {
+	fmt.Println("Total pairs:", len(cfg.Filters), "for Interface:", cfg.Interface)
+	for i, filter := range cfg.Filters {
+		fmt.Printf(" %d) masterIP: '%s', slaveIP: '%s', changeIP: '%s', tries before switch: '%d'\n",
+			i+1,
+			filter.Master.IP,
+			filter.Slave.IP,
+			filter.Route,
+			filter.SwitchTries,
+		)
+	}
+}
+
+func listenInterface(cfg *Config, lo netlink.Link) {
+
 }
 
 //func listenInterface(interfaceName string) {
