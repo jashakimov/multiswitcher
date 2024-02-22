@@ -62,7 +62,7 @@ func main() {
 	}
 
 	// Открываем сетевой интерфейс для захвата пакетов
-	handle, err := pcap.OpenLive(cfg.Interface, 1024, true, time.Second*1)
+	handle, err := pcap.OpenLive(cfg.Interface, 1024, true, time.Second*2)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -79,7 +79,6 @@ func main() {
 
 		go func(fil Filter) {
 			var tries int
-			var isSlaveActual bool
 
 			for packet := range packetSource.Packets() {
 				ipLayer := packet.Layer(layers.LayerTypeIPv4)
@@ -90,10 +89,14 @@ func main() {
 						// если мастер перестал присылаться, а слейв есть
 						if !isMaster && isSlave {
 							tries++
-							if fil.AutoSwitch && tries > fil.SwitchTries && !isSlaveActual {
+
+							if tries < fil.SwitchTries {
+								continue
+							}
+
+							if fil.AutoSwitch && tries > fil.SwitchTries {
 								DelFilter(lo.Attrs().Name, fil.Master.Priority, fil.Master.IP, fil.Route)
 								AddFilter(lo.Attrs().Name, fil.Slave.Priority, fil.Slave.IP, fil.Route)
-								isSlaveActual = true
 							}
 						} else {
 							// обнуляем счетчик попыток
