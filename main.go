@@ -78,80 +78,30 @@ func main() {
 		AddFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
 
 		go func(fil Filter) {
+			var tries int
+			var isSlaveActual bool
+
 			for packet := range packetSource.Packets() {
 				ipLayer := packet.Layer(layers.LayerTypeIPv4)
 				if ipLayer != nil {
 					if ip, ok := ipLayer.(*layers.IPv4); ok {
 						isMaster := strings.Compare(ip.DstIP.String(), fil.Master.IP) == 0
-						isSlave := strings.Compare(ip.DstIP.String(), fil.Slave.IP) != 0
-						toogle := false
-
-						switch {
-						case isMaster:
-							bL := len(ip.Contents)
-							log.Println("master ip:", fil.Master.IP, "content length:", bL)
-
-							// если автоматическое переключение выключено, ничего не делаем
-							if !fil.AutoSwitch {
-								continue
+						isSlave := strings.Compare(ip.DstIP.String(), fil.Slave.IP) == 0
+						// если мастер перестал присылаться, а слейв есть
+						if !isMaster && isSlave {
+							tries++
+							if fil.AutoSwitch && tries > fil.SwitchTries && !isSlaveActual {
+								DelFilter(lo.Attrs().Name, fil.Master.Priority, fil.Master.IP, fil.Route)
+								AddFilter(lo.Attrs().Name, fil.Slave.Priority, fil.Slave.IP, fil.Route)
+								isSlaveActual = true
 							}
-
-							var bytesLength int
-							var tries int
-							// если предыдущее кол-во байтов больше, то вклчается логика переключения
-							if bytesLength > bL {
-								// если поток не восстановился за текущее кол-во попыток, переключаем на slave
-								if tries == fil.SwitchTries {
-									fmt.Println("Переключаем на slave")
-									// удаляем master filter
-									DelFilter(cfg.Interface, fil.Master.Priority, fil.Master.IP, fil.Route)
-									// добавляем slave fitler
-									AddFilter(cfg.Interface, fil.Slave.Priority, fil.Slave.IP, fil.Route)
-									// обнуляем счетчики
-									bytesLength = 0
-									tries = 0
-								}
-								fmt.Println("Увеличиваем счетчик", tries)
-								tries++
-							}
-
-							bytesLength = bL
-						case isSlave && !toogle:
-							log.Println("slave ip:", fil.Slave.IP, "content length:", len(ip.Contents))
-							bL := len(ip.Contents)
-							// если автоматическое переключение выключено, ничего не делаем
-							if !fil.AutoSwitch {
-								toogle = false
-								continue
-							}
-
-							var bytesLength int
-							var tries int
-							// если предыдущее кол-во байтов больше, то вклчается логика переключения
-							if bytesLength > bL {
-								// если поток не восстановился за текущее кол-во попыток, переключаем на slave
-								if tries == fil.SwitchTries {
-									fmt.Println("Переключаем на slave")
-									// удаляем master filter
-									DelFilter(cfg.Interface, fil.Master.Priority, fil.Master.IP, fil.Route)
-									// добавляем slave fitler
-									AddFilter(cfg.Interface, fil.Slave.Priority, fil.Slave.IP, fil.Route)
-									// обнуляем счетчики
-									bytesLength = 0
-									tries = 0
-								}
-								fmt.Println("Увеличиваем счетчик", tries)
-								tries++
-							}
-
-							bytesLength = bL
-							toogle = true
-						case isSlave && toogle:
-							log.Println("slave ip:", fil.Slave.IP, "content length:", len(ip.Contents))
+						} else {
+							// обнуляем счетчик попыток
+							tries = 0
 						}
+						fmt.Println("destIP", ip.DstIP.String())
 					}
 				}
-				time.Sleep(time.Duration(fil.StatFrequencySec) * time.Second)
 			}
 		}(filter)
 	}
