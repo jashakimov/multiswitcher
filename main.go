@@ -85,27 +85,23 @@ func main() {
 						isMaster := strings.Compare(ip.DstIP.String(), fil.Master.IP) == 0
 						isSlave := strings.Compare(ip.DstIP.String(), fil.Slave.IP) != 0
 
-						fmt.Printf("Packet IP format source %s, dest %s\n", ip.SrcIP.String(), ip.DstIP.String())
-						fmt.Printf("Master eq %v, slave eq %v\n",
-							isMaster,
-							isSlave,
-						)
-
 						switch {
 						case isMaster:
-							log.Println("master ip:", fil.Master.IP, "content length:", len(ip.Contents))
+							bL := len(ip.Contents)
+							log.Println("master ip:", fil.Master.IP, "content length:", bL)
 
 							// если автоматическое переключение выключено, ничего не делаем
 							if !fil.AutoSwitch {
 								continue
 							}
 
-							var bytesLength uint16
+							var bytesLength int
 							var tries int
 							// если предыдущее кол-во байтов больше, то вклчается логика переключения
-							if bytesLength > ip.Length {
+							if bytesLength > bL {
 								// если поток не восстановился за текущее кол-во попыток, переключаем на slave
 								if tries == fil.SwitchTries {
+									fmt.Println("Переключаем на slave")
 									// удаляем master filter
 									DelFilter(cfg.Interface, fil.Master.Priority, fil.Master.IP, fil.Route)
 									// добавляем slave fitler
@@ -114,12 +110,13 @@ func main() {
 									bytesLength = 0
 									tries = 0
 								}
+								fmt.Println("Увеличиваем счетчик", tries)
 								tries++
 							}
 
-							bytesLength = ip.Length
+							bytesLength = bL
 						case isSlave:
-							log.Println("master ip:", fil.Master.IP, "content length:", len(ip.Contents))
+							log.Println("slave ip:", fil.Slave.IP, "content length:", len(ip.Contents))
 						}
 					}
 				}
