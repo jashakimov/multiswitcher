@@ -81,7 +81,9 @@ func main() {
 				ipLayer := packet.Layer(layers.LayerTypeIPv4)
 				if ipLayer != nil {
 					if ip, ok := ipLayer.(*layers.IPv4); ok {
-						fmt.Printf("Packet IP format source %s, dest %s", ip.SrcIP, ip.DstIP)
+						fmt.Printf("Packet IP format source %s, dest %s\n", ip.SrcIP, ip.DstIP)
+						fmt.Printf("Config IP format master %s\n", fil.Master.IP)
+						fmt.Printf("Master eq %v, slave eq %v\n", fil.Master.IP == string(ip.DstIP), fil.Slave.IP == string(ip.DstIP))
 
 						switch string(ip.DstIP) {
 						case fil.Master.IP:
