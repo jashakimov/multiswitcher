@@ -71,6 +71,8 @@ func main() {
 
 	log.Println("Установка мастер фильтров")
 	for _, filter := range cfg.Filters {
+		DelFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
+		DelFilter(lo.Attrs().Name, filter.Slave.Priority, filter.Slave.IP, filter.Route)
 		// установка мастер фильтров по умолчанию
 		AddFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
 
