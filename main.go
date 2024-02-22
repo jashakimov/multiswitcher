@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"github.com/google/gopacket"
@@ -77,21 +78,20 @@ func main() {
 		AddFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
 
 		go func(fil Filter) {
-			parsedMasterIP := net.ParseIP(fil.Master.IP)
-			parsedSlaveIP := net.ParseIP(fil.Slave.IP)
+			bytesMasterIP := []byte(fil.Master.IP)
+			bytesSlaveIP := []byte(fil.Slave.IP)
+
 			for packet := range packetSource.Packets() {
 				ipLayer := packet.Layer(layers.LayerTypeIPv4)
 				if ipLayer != nil {
 					if ip, ok := ipLayer.(*layers.IPv4); ok {
-						parsedDstIP := net.ParseIP(string(ip.DstIP))
-						parsedSrcIP := net.ParseIP(string(ip.SrcIP))
 
-						fmt.Printf("Packet IP format source %s, dest %s\n", parsedSrcIP.String(), parsedDstIP.String())
-						fmt.Printf("Config IP format master %s\n", parsedMasterIP.String())
-						fmt.Printf("Master eq %v, slave eq %v\n", parsedMasterIP.Equal(parsedDstIP), parsedSlaveIP.Equal(parsedDstIP))
+						fmt.Printf("Packet IP format source %s, dest %s\n", ip.SrcIP, ip.DstIP)
+						fmt.Printf("Config IP format master %s\n", bytesMasterIP)
+						fmt.Printf("Master eq %v, slave eq %v\n", bytes.Compare(ip.DstIP, bytesMasterIP), bytes.Compare(ip.DstIP, bytesSlaveIP))
 
 						switch {
-						case parsedMasterIP.Equal(parsedDstIP):
+						case bytes.Compare(ip.DstIP, bytesMasterIP) == 0:
 							log.Println("master ip:", fil.Master.IP, "bytes length:", ip.Length)
 
 							// если автоматическое переключение выключено, ничего не делаем
@@ -117,7 +117,7 @@ func main() {
 							}
 
 							bytesLength = ip.Length
-						case parsedSlaveIP.Equal(parsedDstIP):
+						case bytes.Compare(ip.DstIP, bytesSlaveIP) != 0:
 							log.Println("slave ip:", fil.Slave.IP, "bytes length:", ip.Length)
 						}
 					}
