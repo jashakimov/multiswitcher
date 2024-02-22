@@ -81,7 +81,9 @@ func main() {
 				ipLayer := packet.Layer(layers.LayerTypeIPv4)
 				if ipLayer != nil {
 					if ip, ok := ipLayer.(*layers.IPv4); ok {
-						switch string(ip.SrcIP) {
+						fmt.Printf("Packet IP format source %s, dest %s", ip.SrcIP, ip.DstIP)
+
+						switch string(ip.DstIP) {
 						case fil.Master.IP:
 							log.Println("master ip:", fil.Master.IP, "bytes length:", ip.Length)
 
