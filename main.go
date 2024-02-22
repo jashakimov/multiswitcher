@@ -77,16 +77,21 @@ func main() {
 		AddFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
 
 		go func(fil Filter) {
+			parsedMasterIP := net.ParseIP(fil.Master.IP)
+			parsedSlaveIP := net.ParseIP(fil.Slave.IP)
 			for packet := range packetSource.Packets() {
 				ipLayer := packet.Layer(layers.LayerTypeIPv4)
 				if ipLayer != nil {
 					if ip, ok := ipLayer.(*layers.IPv4); ok {
-						fmt.Printf("Packet IP format source %s, dest %s\n", ip.SrcIP, ip.DstIP)
-						fmt.Printf("Config IP format master %s\n", fil.Master.IP)
-						fmt.Printf("Master eq %v, slave eq %v\n", fil.Master.IP == string(ip.DstIP), fil.Slave.IP == string(ip.DstIP))
+						parsedDstIP := net.ParseIP(string(ip.DstIP))
+						parsedSrcIP := net.ParseIP(string(ip.SrcIP))
 
-						switch string(ip.DstIP) {
-						case fil.Master.IP:
+						fmt.Printf("Packet IP format source %s, dest %s\n", parsedSrcIP, parsedDstIP)
+						fmt.Printf("Config IP format master %s\n", parsedMasterIP.String())
+						fmt.Printf("Master eq %v, slave eq %v\n", parsedMasterIP.Equal(parsedDstIP), parsedSlaveIP.Equal(parsedDstIP))
+
+						switch {
+						case parsedMasterIP.Equal(parsedDstIP):
 							log.Println("master ip:", fil.Master.IP, "bytes length:", ip.Length)
 
 							// если автоматическое переключение выключено, ничего не делаем
@@ -112,7 +117,7 @@ func main() {
 							}
 
 							bytesLength = ip.Length
-						case fil.Slave.IP:
+						case parsedSlaveIP.Equal(parsedDstIP):
 							log.Println("slave ip:", fil.Slave.IP, "bytes length:", ip.Length)
 						}
 					}
