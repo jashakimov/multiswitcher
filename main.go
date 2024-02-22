@@ -61,6 +61,33 @@ func main() {
 		panic(err)
 	}
 
+	go func() {
+		t := time.NewTicker(time.Second)
+		for range t.C {
+			fmt.Println(lo.Attrs())
+			fmt.Println()
+		}
+	}()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	<-c
+}
+
+func printConfig(cfg *Config) {
+	fmt.Println("Total pairs:", len(cfg.Filters), "for Interface:", cfg.Interface)
+	for i, filter := range cfg.Filters {
+		fmt.Printf(" %d) masterIP: '%s', slaveIP: '%s', changeIP: '%s', tries before switch: '%d'\n",
+			i+1,
+			filter.Master.IP,
+			filter.Slave.IP,
+			filter.Route,
+			filter.SwitchTries,
+		)
+	}
+}
+
+func er(cfg Config, lo netlink.Link) {
 	// Открываем сетевой интерфейс для захвата пакетов
 	handle, err := pcap.OpenLive(cfg.Interface, 1024, true, time.Second*1)
 	if err != nil {
@@ -125,23 +152,6 @@ func main() {
 				time.Sleep(time.Duration(fil.StatFrequencySec) * time.Second)
 			}
 		}(filter)
-	}
-
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	<-c
-}
-
-func printConfig(cfg *Config) {
-	fmt.Println("Total pairs:", len(cfg.Filters), "for Interface:", cfg.Interface)
-	for i, filter := range cfg.Filters {
-		fmt.Printf(" %d) masterIP: '%s', slaveIP: '%s', changeIP: '%s', tries before switch: '%d'\n",
-			i+1,
-			filter.Master.IP,
-			filter.Slave.IP,
-			filter.Route,
-			filter.SwitchTries,
-		)
 	}
 }
 
