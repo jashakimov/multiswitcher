@@ -69,7 +69,7 @@ func main() {
 	}
 
 	// Открываем сетевой интерфейс для захвата пакетов
-	handle, err := pcap.OpenLive(cfg.Interface, 1600, true, pcap.BlockForever)
+	handle, err := pcap.OpenLive(cfg.Interface, 3*1024, true, time.Second)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -98,16 +98,16 @@ func main() {
 						if ip, ok := ipLayer.(*layers.IPv4); ok {
 							isMaster := strings.Compare(ip.DstIP.String(), fil.Master.IP) == 0
 							isSlave := strings.Compare(ip.DstIP.String(), fil.Slave.IP) == 0
-							fmt.Println("isMaster:", isMaster, "isSlave:", isSlave)
 
 							if !isMaster && !isSlave {
+								fmt.Println("isMaster:", isMaster, "isSlave:", isSlave, "another network-skip")
 								continue
 							}
 							// если мастер перестал присылаться, а слейв есть
 							if !isMaster && isSlave {
 								tries++
 								fmt.Println("tries:", tries)
-								if tries < fil.SwitchTries {
+								if tries < 6*fil.SwitchTries {
 									fmt.Println("tries after icr:", tries)
 									continue
 								}
