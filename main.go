@@ -72,7 +72,7 @@ func main() {
 				b := getValue(lo)
 				if previousValue >= b {
 					tries++
-					if tries > f.SwitchTries {
+					if tries >= f.SwitchTries {
 						fmt.Println("Переключение на слейв")
 						DelFilter(lo.Attrs().Name, f.Master.Priority, f.Master.IP, f.Route)
 						AddFilter(lo.Attrs().Name, f.Slave.Priority, f.Slave.IP, f.Route)
