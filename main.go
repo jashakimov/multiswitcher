@@ -70,7 +70,7 @@ func main() {
 			t := time.NewTicker(time.Duration(f.StatFrequencySec) * time.Second)
 			for range t.C {
 				b := getValue(lo)
-				if previousValue > b {
+				if previousValue >= b {
 					tries++
 					if tries > f.SwitchTries {
 						fmt.Println("Переключение на слейв")
