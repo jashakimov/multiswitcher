@@ -68,40 +68,8 @@ func main() {
 		AddFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
 	}
 
-	qdiscList, err := netlink.QdiscList(lo)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, qdisc := range qdiscList {
-		fmt.Println(qdisc)
-
-		// Assuming you are interested in a specific qdisc (e.g., HTB)
-		if qdisc.Type() == "htb" {
-
-			// Assuming you are interested in a specific class within HTB
-			classList, err := netlink.ClassList(lo, qdisc.Attrs().Handle)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			for _, class := range classList {
-				// Assuming you are interested in a specific filter within the class
-				filterList, err := netlink.FilterList(lo, class.Attrs().Handle)
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				for _, filter := range filterList {
-					filter.Type()
-					fmt.Println(filter.Attrs())
-				}
-			}
-		}
-	}
-
 	// Открываем сетевой интерфейс для захвата пакетов
-	handle, err := pcap.OpenLive(cfg.Interface, 2024, true, time.Second*10)
+	handle, err := pcap.OpenLive(cfg.Interface, 1600, true, pcap.BlockForever)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -117,40 +85,47 @@ func main() {
 		AddFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
 
 		go func(fil Filter) {
+			ticker := time.NewTicker(5 * time.Second)
+
 			tries := fil.SwitchTries
 			var isSwitched bool
 
 			for packet := range packetSource.Packets() {
-				ipLayer := packet.Layer(layers.LayerTypeIPv4)
-				if ipLayer != nil {
-					if ip, ok := ipLayer.(*layers.IPv4); ok {
-						isMaster := strings.Compare(ip.DstIP.String(), fil.Master.IP) == 0
-						isSlave := strings.Compare(ip.DstIP.String(), fil.Slave.IP) == 0
-						fmt.Println("isMaster:", isMaster, "isSlave:", isSlave)
+				select {
+				case <-ticker.C:
+					ipLayer := packet.Layer(layers.LayerTypeIPv4)
+					if ipLayer != nil {
+						if ip, ok := ipLayer.(*layers.IPv4); ok {
+							isMaster := strings.Compare(ip.DstIP.String(), fil.Master.IP) == 0
+							isSlave := strings.Compare(ip.DstIP.String(), fil.Slave.IP) == 0
+							fmt.Println("isMaster:", isMaster, "isSlave:", isSlave)
 
-						if !isMaster && !isSlave {
-							continue
-						}
-						// если мастер перестал присылаться, а слейв есть
-						if !isMaster && isSlave {
-							tries++
-							fmt.Println("tries:", tries)
-							if tries < 6*fil.SwitchTries {
-								fmt.Println("tries after icr:", tries)
+							if !isMaster && !isSlave {
 								continue
 							}
+							// если мастер перестал присылаться, а слейв есть
+							if !isMaster && isSlave {
+								tries++
+								fmt.Println("tries:", tries)
+								if tries < fil.SwitchTries {
+									fmt.Println("tries after icr:", tries)
+									continue
+								}
 
-							fmt.Println("isSwitched ", isSwitched)
-							if fil.AutoSwitch && !isSwitched {
-								DelFilter(lo.Attrs().Name, fil.Master.Priority, fil.Master.IP, fil.Route)
-								AddFilter(lo.Attrs().Name, fil.Slave.Priority, fil.Slave.IP, fil.Route)
-								isSwitched = true
+								fmt.Println("isSwitched ", isSwitched)
+								if fil.AutoSwitch && !isSwitched {
+									DelFilter(lo.Attrs().Name, fil.Master.Priority, fil.Master.IP, fil.Route)
+									AddFilter(lo.Attrs().Name, fil.Slave.Priority, fil.Slave.IP, fil.Route)
+									isSwitched = true
+								}
+							} else {
+								// обнуляем счетчик попыток
+								tries = 0
 							}
-						} else {
-							// обнуляем счетчик попыток
-							tries = 0
 						}
 					}
+				default:
+					continue
 				}
 			}
 		}(filter)
