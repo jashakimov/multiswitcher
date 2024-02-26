@@ -3,10 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
 	_ "github.com/google/gopacket/layers"
-	"github.com/google/gopacket/pcap"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netlink/nl"
 	"golang.org/x/sys/unix"
@@ -15,8 +12,8 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"regexp"
 	"strconv"
-	"strings"
 	"syscall"
 	"time"
 )
@@ -66,64 +63,23 @@ func main() {
 		DelFilter(lo.Attrs().Name, filter.Slave.Priority, filter.Slave.IP, filter.Route)
 		// установка мастер фильтров по умолчанию
 		AddFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
-	}
 
-	// Открываем сетевой интерфейс для захвата пакетов
-	handle, err := pcap.OpenLive(cfg.Interface, 3*1024, true, time.Second)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer handle.Close()
-
-	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
-	log.Println("Установка мастер фильтров")
-	for _, filter := range cfg.Filters {
-		DelFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
-		DelFilter(lo.Attrs().Name, filter.Slave.Priority, filter.Slave.IP, filter.Route)
-		// установка мастер фильтров по умолчанию
-		AddFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
-
-		go func(fil Filter) {
-			ticker := time.NewTicker(1 * time.Second)
-
-			tries := fil.SwitchTries
-			var isSwitched bool
-
-			for packet := range packetSource.Packets() {
-				select {
-				case <-ticker.C:
-					ipLayer := packet.Layer(layers.LayerTypeIPv4)
-					if ipLayer != nil {
-						if ip, ok := ipLayer.(*layers.IPv4); ok {
-							isMaster := strings.Compare(ip.DstIP.String(), fil.Master.IP) == 0
-							isSlave := strings.Compare(ip.DstIP.String(), fil.Slave.IP) == 0
-
-							if !isMaster && !isSlave {
-								continue
-							}
-							// если мастер перестал присылаться, а слейв есть
-							if !isMaster && isSlave {
-								tries++
-								if tries < 2*fil.SwitchTries {
-									continue
-								}
-
-								if fil.AutoSwitch && !isSwitched {
-									DelFilter(lo.Attrs().Name, fil.Master.Priority, fil.Master.IP, fil.Route)
-									AddFilter(lo.Attrs().Name, fil.Slave.Priority, fil.Slave.IP, fil.Route)
-									fmt.Println("switch to slave", fil.Slave.IP)
-									isSwitched = true
-								}
-								tries = 0
-							} else {
-								// обнуляем счетчик попыток
-								tries = 0
-							}
-						}
+		go func(f Filter) {
+			var previousValue uint64
+			var tries int
+			t := time.NewTicker(time.Duration(f.StatFrequencySec) * time.Second)
+			for range t.C {
+				b := getValue(lo)
+				if previousValue > b {
+					tries++
+					if tries > f.SwitchTries {
+						fmt.Println("Переключение на слейв")
+						DelFilter(lo.Attrs().Name, f.Master.Priority, f.Master.IP, f.Route)
+						AddFilter(lo.Attrs().Name, f.Slave.Priority, f.Slave.IP, f.Route)
+						return
 					}
-				default:
-					continue
 				}
+				previousValue = b
 			}
 		}(filter)
 	}
@@ -131,6 +87,33 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
+}
+
+func getValue(lnk netlink.Link) uint64 {
+	cmd := exec.Command("tc", "-s", "-pretty", "filter", "show", "ingress", "dev", lnk.Attrs().Name)
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+		panic(err)
+	}
+	re := regexp.MustCompile(`Sent (\d+) bytes`)
+
+	match := re.FindStringSubmatch(string(output))
+
+	if len(match) > 1 {
+		byteCount, err := strconv.ParseUint(match[1], 10, 64)
+
+		fmt.Println("Кол-во байтов", byteCount)
+
+		if err != nil {
+			panic(err)
+		}
+		return byteCount
+	} else {
+		fmt.Println("Не найдено ")
+	}
+
+	return 0
 }
 
 func printConfig(cfg *Config) {
