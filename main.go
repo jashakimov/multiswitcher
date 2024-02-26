@@ -76,13 +76,6 @@ func main() {
 	defer handle.Close()
 
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
-
-	list, err := netlink.FilterList(lo, netlink.HANDLE_INGRESS)
-	if err != nil {
-		log.Println(err)
-	}
-	qdisc, _ := netlink.QdiscList(lo)
-
 	log.Println("Установка мастер фильтров")
 	for _, filter := range cfg.Filters {
 		DelFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
@@ -99,13 +92,6 @@ func main() {
 			for packet := range packetSource.Packets() {
 				select {
 				case <-ticker.C:
-					for _, f := range list {
-						fmt.Printf("filter type %s, data %s", f.Type(), f.Attrs())
-					}
-					for _, q := range qdisc {
-						fmt.Printf("qdisc type %s, data %s", q.Type(), q.Attrs())
-					}
-
 					ipLayer := packet.Layer(layers.LayerTypeIPv4)
 					if ipLayer != nil {
 						if ip, ok := ipLayer.(*layers.IPv4); ok {
