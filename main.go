@@ -77,6 +77,12 @@ func main() {
 
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 
+	list, err := netlink.FilterList(lo, netlink.HANDLE_INGRESS)
+	if err != nil {
+		log.Println(err)
+	}
+	qdisc, _ := netlink.QdiscList(lo)
+
 	log.Println("Установка мастер фильтров")
 	for _, filter := range cfg.Filters {
 		DelFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
@@ -93,6 +99,13 @@ func main() {
 			for packet := range packetSource.Packets() {
 				select {
 				case <-ticker.C:
+					for _, f := range list {
+						fmt.Printf("filter type %s, data %s", f.Type(), f.Attrs())
+					}
+					for _, q := range qdisc {
+						fmt.Printf("qdisc type %s, data %s", q.Type(), q.Attrs())
+					}
+
 					ipLayer := packet.Layer(layers.LayerTypeIPv4)
 					if ipLayer != nil {
 						if ip, ok := ipLayer.(*layers.IPv4); ok {
@@ -100,15 +113,12 @@ func main() {
 							isSlave := strings.Compare(ip.DstIP.String(), fil.Slave.IP) == 0
 
 							if !isMaster && !isSlave {
-								fmt.Println("isMaster:", isMaster, "isSlave:", isSlave, "another network-skip")
 								continue
 							}
 							// если мастер перестал присылаться, а слейв есть
 							if !isMaster && isSlave {
 								tries++
-								fmt.Println("tries:", tries)
-								if tries < fil.SwitchTries {
-									fmt.Println("tries after icr:", tries)
+								if tries < 2*fil.SwitchTries {
 									continue
 								}
 
@@ -186,9 +196,9 @@ func AddFilter(interfaceName string, priority int, ip, route string) {
 		"match", "ip", "dst", ip,
 		"action", "nat", "ingress", ip, route,
 	)
-	log.Println("Выполнение команды:", cmd.String())
+	log.Println("Создание фильтра", cmd.String())
 	if _, err := cmd.Output(); err != nil {
-		log.Println("Ошибка добавление мастер-фильтра")
+		log.Println("Ошибка добавление фильтра")
 	}
 }
 func DelFilter(interfaceName string, priority int, ip, route string) {
@@ -199,9 +209,9 @@ func DelFilter(interfaceName string, priority int, ip, route string) {
 		"match", "ip", "dst", ip,
 		"action", "nat", "ingress", ip, route,
 	)
-	log.Println("Выполнение команды:", cmd.String())
+	log.Println("Удаление фильтра", cmd.String())
 	if _, err := cmd.Output(); err != nil {
-		log.Println("Ошибка удаления master-фильтра: filter does not exist")
+		log.Println("Ошибка удаления фильтра: filter does not exist")
 	}
 }
 
