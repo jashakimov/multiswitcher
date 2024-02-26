@@ -126,14 +126,17 @@ func main() {
 					if ip, ok := ipLayer.(*layers.IPv4); ok {
 						isMaster := strings.Compare(ip.DstIP.String(), fil.Master.IP) == 0
 						isSlave := strings.Compare(ip.DstIP.String(), fil.Slave.IP) == 0
+						fmt.Println("isMaster:", isMaster, "isSlave:", isSlave)
 						// если мастер перестал присылаться, а слейв есть
 						if !isMaster && isSlave {
 							tries++
-
+							fmt.Println("tries:", tries)
 							if tries < 6*fil.SwitchTries {
+								fmt.Println("tries after icr:", tries)
 								continue
 							}
 
+							fmt.Println("isSwitched ", isSwitched)
 							if fil.AutoSwitch && !isSwitched {
 								DelFilter(lo.Attrs().Name, fil.Master.Priority, fil.Master.IP, fil.Route)
 								AddFilter(lo.Attrs().Name, fil.Slave.Priority, fil.Slave.IP, fil.Route)
