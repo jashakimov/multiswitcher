@@ -101,7 +101,7 @@ func main() {
 	}
 
 	// Открываем сетевой интерфейс для захвата пакетов
-	handle, err := pcap.OpenLive(cfg.Interface, 1024, true, time.Second*2)
+	handle, err := pcap.OpenLive(cfg.Interface, 2024, true, time.Second*10)
 	if err != nil {
 		log.Fatal(err)
 	}
