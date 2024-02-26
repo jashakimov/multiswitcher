@@ -134,7 +134,7 @@ func main() {
 								continue
 							}
 
-							if fil.AutoSwitch && tries > fil.SwitchTries && !isSwitched {
+							if fil.AutoSwitch && !isSwitched {
 								DelFilter(lo.Attrs().Name, fil.Master.Priority, fil.Master.IP, fil.Route)
 								AddFilter(lo.Attrs().Name, fil.Slave.Priority, fil.Slave.IP, fil.Route)
 								isSwitched = true
@@ -143,7 +143,6 @@ func main() {
 							// обнуляем счетчик попыток
 							tries = 0
 						}
-						fmt.Println("destIP", ip.DstIP.String())
 					}
 				}
 			}
