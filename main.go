@@ -127,6 +127,10 @@ func main() {
 						isMaster := strings.Compare(ip.DstIP.String(), fil.Master.IP) == 0
 						isSlave := strings.Compare(ip.DstIP.String(), fil.Slave.IP) == 0
 						fmt.Println("isMaster:", isMaster, "isSlave:", isSlave)
+
+						if !isMaster && !isSlave {
+							continue
+						}
 						// если мастер перестал присылаться, а слейв есть
 						if !isMaster && isSlave {
 							tries++
