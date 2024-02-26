@@ -85,7 +85,7 @@ func main() {
 		AddFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
 
 		go func(fil Filter) {
-			ticker := time.NewTicker(2 * time.Second)
+			ticker := time.NewTicker(1 * time.Second)
 
 			tries := fil.SwitchTries
 			var isSwitched bool
@@ -107,7 +107,7 @@ func main() {
 							if !isMaster && isSlave {
 								tries++
 								fmt.Println("tries:", tries)
-								if tries < 6*fil.SwitchTries {
+								if tries < fil.SwitchTries {
 									fmt.Println("tries after icr:", tries)
 									continue
 								}
@@ -118,6 +118,7 @@ func main() {
 									fmt.Println("switch to slave", fil.Slave.IP)
 									isSwitched = true
 								}
+								tries = 0
 							} else {
 								// обнуляем счетчик попыток
 								tries = 0
