@@ -61,6 +61,45 @@ func main() {
 		panic(err)
 	}
 
+	for _, filter := range cfg.Filters {
+		DelFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
+		DelFilter(lo.Attrs().Name, filter.Slave.Priority, filter.Slave.IP, filter.Route)
+		// установка мастер фильтров по умолчанию
+		AddFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
+	}
+
+	qdiscList, err := netlink.QdiscList(lo)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, qdisc := range qdiscList {
+		fmt.Println(qdisc)
+
+		// Assuming you are interested in a specific qdisc (e.g., HTB)
+		if qdisc.Type() == "htb" {
+
+			// Assuming you are interested in a specific class within HTB
+			classList, err := netlink.ClassList(lo, qdisc.Attrs().Handle)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			for _, class := range classList {
+				// Assuming you are interested in a specific filter within the class
+				filterList, err := netlink.FilterList(lo, class.Attrs().Handle)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				for _, filter := range filterList {
+					filter.Type()
+					fmt.Println(filter.Attrs())
+				}
+			}
+		}
+	}
+
 	// Открываем сетевой интерфейс для захвата пакетов
 	handle, err := pcap.OpenLive(cfg.Interface, 1024, true, time.Second*2)
 	if err != nil {
@@ -78,7 +117,8 @@ func main() {
 		AddFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
 
 		go func(fil Filter) {
-			var tries int
+			tries := fil.SwitchTries
+			var isSwitched bool
 
 			for packet := range packetSource.Packets() {
 				ipLayer := packet.Layer(layers.LayerTypeIPv4)
@@ -90,13 +130,14 @@ func main() {
 						if !isMaster && isSlave {
 							tries++
 
-							if tries < fil.SwitchTries {
+							if tries < 6*fil.SwitchTries {
 								continue
 							}
 
-							if fil.AutoSwitch && tries > fil.SwitchTries {
+							if fil.AutoSwitch && tries > fil.SwitchTries && !isSwitched {
 								DelFilter(lo.Attrs().Name, fil.Master.Priority, fil.Master.IP, fil.Route)
 								AddFilter(lo.Attrs().Name, fil.Slave.Priority, fil.Slave.IP, fil.Route)
+								isSwitched = true
 							}
 						} else {
 							// обнуляем счетчик попыток
