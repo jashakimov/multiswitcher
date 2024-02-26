@@ -85,7 +85,7 @@ func main() {
 		AddFilter(lo.Attrs().Name, filter.Master.Priority, filter.Master.IP, filter.Route)
 
 		go func(fil Filter) {
-			ticker := time.NewTicker(5 * time.Second)
+			ticker := time.NewTicker(2 * time.Second)
 
 			tries := fil.SwitchTries
 			var isSwitched bool
@@ -112,10 +112,10 @@ func main() {
 									continue
 								}
 
-								fmt.Println("isSwitched ", isSwitched)
 								if fil.AutoSwitch && !isSwitched {
 									DelFilter(lo.Attrs().Name, fil.Master.Priority, fil.Master.IP, fil.Route)
 									AddFilter(lo.Attrs().Name, fil.Slave.Priority, fil.Slave.IP, fil.Route)
+									fmt.Println("switch to slave", fil.Slave.IP)
 									isSwitched = true
 								}
 							} else {
