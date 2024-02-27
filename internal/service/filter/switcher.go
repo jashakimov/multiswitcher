@@ -43,7 +43,7 @@ func TurnOnAutoSwitch(statManager statistic.Service, info Filter) {
 	for {
 		select {
 		case <-t.C:
-			bytes, err := statManager.GetBytesByIP(info.DstIP)
+			bytes, err := statManager.GetBytesByIP(info.MasterIP)
 			if err != nil {
 				log.Println(err)
 				continue
