@@ -16,12 +16,12 @@ type Service interface {
 	Switch(ctx *gin.Context)
 }
 
-func NewService(db map[int]filter.Filter, statService statistic.Service) Service {
+func NewService(db map[int]*filter.Filter, statService statistic.Service) Service {
 	return &service{db: db, statService: statService}
 }
 
 type service struct {
-	db          map[int]filter.Filter
+	db          map[int]*filter.Filter
 	statService statistic.Service
 }
 

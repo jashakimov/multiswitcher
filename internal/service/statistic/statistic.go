@@ -1,7 +1,6 @@
 package statistic
 
 import (
-	"fmt"
 	"github.com/jashakimov/multiswitcher/internal/utils"
 	"gopkg.in/errgo.v2/fmt/errors"
 	"math/big"
@@ -49,15 +48,11 @@ func (s *service) readStats() {
 		if err != nil {
 			panic(err)
 		}
-
 		matches := reg.FindAllStringSubmatch(string(statsOutput), -1)
 
 		for _, match := range matches {
 			bytes := new(big.Int)
 			bytes.SetString(match[2], 10)
-
-			fmt.Printf("Matched IP: %s, Sent Bytes: %s\n", match[1], bytes)
-
 			s.cache.Set(match[1], bytes)
 		}
 	}

@@ -36,7 +36,7 @@ func Del(interfaceName string, priority int, ip, route string) {
 	}
 }
 
-func TurnOnAutoSwitch(statManager statistic.Service, info Filter) {
+func TurnOnAutoSwitch(statManager statistic.Service, info *Filter) {
 	var tries int
 	t := time.NewTicker(time.Second)
 
@@ -48,9 +48,6 @@ func TurnOnAutoSwitch(statManager statistic.Service, info Filter) {
 				log.Println(err)
 				continue
 			}
-
-			fmt.Println("Кол-во байт", info.Bytes)
-
 			if info.Bytes == nil {
 				info.Bytes = bytes
 				continue

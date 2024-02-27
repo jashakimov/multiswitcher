@@ -76,7 +76,7 @@ func main() {
 	<-c
 }
 
-func CreateFilters(db map[int]filter.Filter, statService statistic.Service) {
+func CreateFilters(db map[int]*filter.Filter, statService statistic.Service) {
 	for _, data := range db {
 		//удаляем старые фильтры
 		filter.Del(data.InterfaceName, data.Cfg.MasterPrio, data.MasterIP, data.DstIP)
@@ -128,10 +128,10 @@ func Route(lnk netlink.Link, filters []config.Filter) error {
 	return nil
 }
 
-func MakeLocalDB(cfg *config.Config) map[int]filter.Filter {
-	info := make(map[int]filter.Filter)
+func MakeLocalDB(cfg *config.Config) map[int]*filter.Filter {
+	info := make(map[int]*filter.Filter)
 	for i, f := range cfg.Filters {
-		info[i+1] = filter.Filter{
+		info[i+1] = &filter.Filter{
 			Id:             i + 1,
 			InterfaceName:  cfg.Interface,
 			MasterIP:       f.Master.IP,
