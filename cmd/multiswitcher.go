@@ -53,10 +53,10 @@ func main() {
 	}
 
 	db := MakeLocalDB(cfg)
-	statManager := statistic.NewService(link.Attrs().Name)
+	statManager := statistic.NewService(link.Attrs().Name, cfg.StatFrequencySec)
+	filterManager := filter.NewService(statManager)
 	CreateFilters(db, statManager)
-
-	api := api.NewService(db, statManager)
+	api := api.NewService(db, statManager, filterManager)
 	server := gin.Default()
 
 	server.GET("/stats", api.GetConfigs)
@@ -141,7 +141,7 @@ func MakeLocalDB(cfg *config.Config) map[int]*filter.Filter {
 			Bytes:          nil,
 			Cfg: filter.Cfg{
 				Tries:       f.SwitchTries,
-				SecToSwitch: f.StatFrequencySec,
+				SecToSwitch: cfg.StatFrequencySec,
 				MasterPrio:  f.Master.Priority,
 				SlavePrio:   f.Slave.Priority,
 				AutoSwitch:  f.AutoSwitch,
