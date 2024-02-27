@@ -14,10 +14,8 @@ type Service interface {
 }
 
 type service struct {
-	cache  *utils.SyncMap[string, *big.Int]
-	cmd    *exec.Cmd
-	regexp *regexp.Regexp
-	name   string
+	cache *utils.SyncMap[string, *big.Int]
+	name  string
 }
 
 func NewService(linkName string) Service {
@@ -41,17 +39,17 @@ func (s *service) GetBytesByIP(ip string) (*big.Int, error) {
 
 func (s *service) readStats() {
 	t := time.NewTicker(time.Second)
-	s.cmd = exec.Command("tc", "-s", "-pretty", "filter", "show", "ingress", "dev", s.name)
+	cmd := exec.Command("tc", "-s", "-pretty", "filter", "show", "ingress", "dev", s.name)
 	// нам нужна инфа в скобках (match[1] и match[2])
-	s.regexp = regexp.MustCompile(`dst (\S+)/\S+\n.+\n.+\n.+\n.+Sent (\d+)`)
+	reg := regexp.MustCompile(`dst (\S+)/\S+\n.+\n.+\n.+\n.+Sent (\d+)`)
 
 	for range t.C {
-		statsOutput, err := s.cmd.CombinedOutput()
+		statsOutput, err := cmd.CombinedOutput()
 		if err != nil {
 			panic(err)
 		}
 
-		matches := s.regexp.FindAllStringSubmatch(string(statsOutput), -1)
+		matches := reg.FindAllStringSubmatch(string(statsOutput), -1)
 		for _, match := range matches {
 			bytes := new(big.Int)
 			bytes.SetString(match[2], 10)
