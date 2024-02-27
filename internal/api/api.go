@@ -17,13 +17,18 @@ type Service interface {
 	Switch(ctx *gin.Context)
 }
 
-func NewService(db map[int]*filter.Filter, statService statistic.Service) Service {
-	return &service{db: db, statService: statService}
+func NewService(
+	db map[int]*filter.Filter,
+	statService statistic.Service,
+	filterService filter.Service,
+) Service {
+	return &service{db: db, statService: statService, filterService: filterService}
 }
 
 type service struct {
-	db          map[int]*filter.Filter
-	statService statistic.Service
+	db            map[int]*filter.Filter
+	statService   statistic.Service
+	filterService filter.Service
 }
 
 func (s *service) GetConfigs(ctx *gin.Context) {
@@ -34,30 +39,34 @@ func (s *service) Switch(ctx *gin.Context) {
 	rawId := ctx.Param("id")
 	id, err := strconv.Atoi(rawId)
 	if err != nil {
-		ctx.String(http.StatusBadRequest, err.Error())
+		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 	name := ctx.Param("name")
 	if !utils.InSlice(strings.ToLower(name), []string{"master", "slave"}) {
-		ctx.String(http.StatusBadRequest, "Значение только master/slave")
+		ctx.JSON(http.StatusBadRequest, "Значение только master/slave")
 		return
 	}
 
 	filterInfo, ok := s.db[id]
 	if !ok {
-		ctx.String(http.StatusNotFound, "Not found")
+		ctx.JSON(http.StatusNotFound, "Не найден")
 		return
 	}
 
 	// переключать можем, если только автопереключение выключено
-	if !filterInfo.Cfg.AutoSwitch {
-		if filterInfo.IsMasterActual {
-			filter.Del(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
-			filter.Add(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
-		} else {
-			filter.Del(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
-			filter.Add(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
-		}
+	if filterInfo.Cfg.AutoSwitch {
+		ctx.JSON(http.StatusNotFound, "Переключить можно, если автопереключение выключено")
+		return
+	}
+
+	if filterInfo.IsMasterActual {
+		s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
+		s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
+	} else {
+		s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
+		s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
+		filterInfo.IsMasterActual = true
 	}
 }
 
@@ -65,12 +74,12 @@ func (s *service) GetConfigByID(ctx *gin.Context) {
 	rawId := ctx.Param("id")
 	id, err := strconv.Atoi(rawId)
 	if err != nil {
-		ctx.String(http.StatusBadRequest, err.Error())
+		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 	filterInfo, ok := s.db[id]
 	if !ok {
-		ctx.String(http.StatusNotFound, "Not found")
+		ctx.JSON(http.StatusNotFound, "Not found")
 		return
 	}
 
@@ -81,7 +90,7 @@ func (s *service) SetAutoSwitch(ctx *gin.Context) {
 	rawId := ctx.Param("id")
 	id, err := strconv.Atoi(rawId)
 	if err != nil {
-		ctx.String(http.StatusBadRequest, err.Error())
+		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -92,19 +101,21 @@ func (s *service) SetAutoSwitch(ctx *gin.Context) {
 	case "off":
 		autoSwitchVal = false
 	default:
-		ctx.String(http.StatusBadRequest, "Параметр только on или off")
+		ctx.JSON(http.StatusBadRequest, "Параметр только on или off")
 		return
 	}
 
 	filterInfo, ok := s.db[id]
 	if !ok {
-		ctx.String(http.StatusNotFound, "Не найден")
+		ctx.JSON(http.StatusNotFound, "Не найден")
 		return
 	}
 
 	filterInfo.Cfg.AutoSwitch = autoSwitchVal
 	if autoSwitchVal {
-		go filter.TurnOnAutoSwitch(s.statService, filterInfo)
+		go s.filterService.TurnOnAutoSwitch(filterInfo)
+	} else {
+		s.filterService.TurnOffAutoSwitch(filterInfo.Id)
 	}
 
 	ctx.JSON(http.StatusOK, filterInfo)

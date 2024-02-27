@@ -7,18 +7,18 @@ import (
 )
 
 type Config struct {
-	Interface string   `json:"interface"`
-	Port      string   "port"
-	Filters   []Filter `json:"filters"`
+	Interface        string   `json:"interface"`
+	Port             string   `json:"port"`
+	StatFrequencySec int      `json:"statsFrequencySec"`
+	Filters          []Filter `json:"filters"`
 }
 
 type Filter struct {
-	StatFrequencySec int    `json:"statsFrequencySec"`
-	Route            string `json:"route,omitempty"`
-	SwitchTries      int    `json:"switchTries,omitempty"`
-	AutoSwitch       bool   `json:"autoSwitch"`
-	Master           Info   `json:"master,omitempty"`
-	Slave            Info   `json:"slave,omitempty"`
+	Route       string `json:"route,omitempty"`
+	SwitchTries int    `json:"switchTries,omitempty"`
+	AutoSwitch  bool   `json:"autoSwitch"`
+	Master      Info   `json:"master,omitempty"`
+	Slave       Info   `json:"slave,omitempty"`
 }
 
 type Info struct {

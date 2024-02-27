@@ -9,7 +9,27 @@ import (
 	"time"
 )
 
-func Add(interfaceName string, priority int, ip, route string) {
+type Service interface {
+	Add(interfaceName string, priority int, ip, route string)
+	Del(interfaceName string, priority int, ip, route string)
+	TurnOnAutoSwitch(info *Filter)
+	TurnOffAutoSwitch(filterID int)
+}
+
+type service struct {
+	turnOff     chan int
+	statManager statistic.Service
+}
+
+func NewService(statManager statistic.Service) Service {
+	return &service{turnOff: make(chan int, 10), statManager: statManager}
+}
+
+func (s *service) TurnOffAutoSwitch(filterID int) {
+	s.turnOff <- filterID
+}
+
+func (s *service) Add(interfaceName string, priority int, ip, route string) {
 	cmd := exec.Command(
 		"tc", "filter", "add", "dev", interfaceName, "parent", "ffff:",
 		"protocol", "ip",
@@ -22,7 +42,7 @@ func Add(interfaceName string, priority int, ip, route string) {
 		log.Println("Ошибка добавление фильтра")
 	}
 }
-func Del(interfaceName string, priority int, ip, route string) {
+func (s *service) Del(interfaceName string, priority int, ip, route string) {
 	cmd := exec.Command(
 		"tc", "filter", "delete", "dev", interfaceName, "parent", "ffff:",
 		"protocol", "ip",
@@ -36,14 +56,19 @@ func Del(interfaceName string, priority int, ip, route string) {
 	}
 }
 
-func TurnOnAutoSwitch(statManager statistic.Service, info *Filter) {
+func (s *service) TurnOnAutoSwitch(info *Filter) {
 	var tries int
-	t := time.NewTicker(time.Second)
+	t := time.NewTicker(time.Duration(info.Cfg.SecToSwitch) * time.Millisecond)
 
 	for {
 		select {
+		case id := <-s.turnOff:
+			if id == info.Id {
+				log.Println("Пришло уведомление о выключении автоматического переключения", info.DstIP)
+				return
+			}
 		case <-t.C:
-			bytes, err := statManager.GetBytesByIP(info.MasterIP)
+			bytes, err := s.statManager.GetBytesByIP(info.MasterIP)
 			if err != nil {
 				log.Println(err)
 				continue
@@ -57,8 +82,8 @@ func TurnOnAutoSwitch(statManager statistic.Service, info *Filter) {
 				tries++
 				if tries >= info.Cfg.Tries {
 					fmt.Println("Переключение на слейв")
-					Del(info.InterfaceName, info.Cfg.MasterPrio, info.MasterIP, info.DstIP)
-					Add(info.InterfaceName, info.Cfg.SlavePrio, info.SlaveIP, info.DstIP)
+					s.Del(info.InterfaceName, info.Cfg.MasterPrio, info.MasterIP, info.DstIP)
+					s.Add(info.InterfaceName, info.Cfg.SlavePrio, info.SlaveIP, info.DstIP)
 					info.IsMasterActual = false
 					return
 				}

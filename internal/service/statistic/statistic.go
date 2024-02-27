@@ -18,13 +18,13 @@ type service struct {
 	interfaceName string
 }
 
-func NewService(linkName string) Service {
+func NewService(linkName string, timeoutMs int) Service {
 	s := &service{
 		interfaceName: linkName,
 		cache:         utils.NewSyncMap[string, *big.Int](),
 	}
 
-	go s.readStats()
+	go s.readStats(timeoutMs)
 
 	return s
 }
@@ -36,8 +36,8 @@ func (s *service) GetBytesByIP(ip string) (*big.Int, error) {
 	return nil, errors.Newf("Uknown IP: %s\n", ip)
 }
 
-func (s *service) readStats() {
-	t := time.NewTicker(time.Second)
+func (s *service) readStats(timeoutMs int) {
+	t := time.NewTicker(time.Duration(timeoutMs) * time.Millisecond)
 
 	for range t.C {
 		cmd := exec.Command("tc", "-s", "-pretty", "filter", "show", "ingress", "dev", s.interfaceName)
