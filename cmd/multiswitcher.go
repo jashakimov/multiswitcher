@@ -66,7 +66,7 @@ func main() {
 
 	go func() {
 		log.Println("Запущен сервер, порт", cfg.Port)
-		if err := server.Run(cfg.Port); err != nil {
+		if err := server.Run(":" + cfg.Port); err != nil {
 			panic(err)
 		}
 	}()
