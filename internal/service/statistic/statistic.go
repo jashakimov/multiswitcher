@@ -14,14 +14,14 @@ type Service interface {
 }
 
 type service struct {
-	cache *utils.SyncMap[string, *big.Int]
-	name  string
+	cache         *utils.SyncMap[string, *big.Int]
+	interfaceName string
 }
 
 func NewService(linkName string) Service {
 	s := &service{
-		name:  linkName,
-		cache: utils.NewSyncMap[string, *big.Int](),
+		interfaceName: linkName,
+		cache:         utils.NewSyncMap[string, *big.Int](),
 	}
 
 	go s.readStats()
@@ -41,7 +41,7 @@ func (s *service) readStats() {
 	t := time.NewTicker(time.Second)
 
 	for range t.C {
-		cmd := exec.Command("tc", "-s", "-pretty", "filter", "show", "ingress", "dev", s.name)
+		cmd := exec.Command("tc", "-s", "-pretty", "filter", "show", "ingress", "dev", s.interfaceName)
 		// нам нужна инфа в скобках (match[1] и match[2])
 		reg := regexp.MustCompile(`dst (\S+)/\S+\n.+\n.+\n.+\n.+Sent (\d+)`)
 

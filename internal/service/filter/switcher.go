@@ -49,6 +49,11 @@ func TurnOnAutoSwitch(statManager statistic.Service, info Filter) {
 				continue
 			}
 
+			fmt.Println("Кол-во байт", info.Bytes)
+			if info.Bytes == nil {
+				continue
+			}
+
 			if info.Bytes.Cmp(bytes) == 0 || info.Bytes.Cmp(bytes) > 0 {
 				tries++
 				if tries >= info.Cfg.Tries {
