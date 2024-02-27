@@ -63,6 +63,7 @@ func (s *service) Switch(ctx *gin.Context) {
 	if filterInfo.IsMasterActual {
 		s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
 		s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
+		filterInfo.IsMasterActual = false
 	} else {
 		s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
 		s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
