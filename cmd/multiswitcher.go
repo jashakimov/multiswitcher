@@ -22,6 +22,7 @@ import (
 func main() {
 	fileConfig := utils.ParseFlags()
 	cfg := config.NewConfig(fileConfig)
+	utils.PrintConfig(cfg)
 
 	link, err := netlink.LinkByName(cfg.Interface)
 	if err != nil {

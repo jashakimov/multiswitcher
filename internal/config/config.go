@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"github.com/jashakimov/multiswitcher/internal/utils"
 	"io"
 	"os"
 )
@@ -42,8 +41,5 @@ func NewConfig(fileName string) *Config {
 	if err := json.Unmarshal(bytes, &cfg); err != nil {
 		panic(err)
 	}
-
-	utils.PrintConfig(&cfg)
-
 	return &cfg
 }
