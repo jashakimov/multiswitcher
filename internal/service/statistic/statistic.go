@@ -39,11 +39,12 @@ func (s *service) GetBytesByIP(ip string) (*big.Int, error) {
 
 func (s *service) readStats() {
 	t := time.NewTicker(time.Second)
-	cmd := exec.Command("tc", "-s", "-pretty", "filter", "show", "ingress", "dev", s.name)
-	// нам нужна инфа в скобках (match[1] и match[2])
-	reg := regexp.MustCompile(`dst (\S+)/\S+\n.+\n.+\n.+\n.+Sent (\d+)`)
 
 	for range t.C {
+		cmd := exec.Command("tc", "-s", "-pretty", "filter", "show", "ingress", "dev", s.name)
+		// нам нужна инфа в скобках (match[1] и match[2])
+		reg := regexp.MustCompile(`dst (\S+)/\S+\n.+\n.+\n.+\n.+Sent (\d+)`)
+
 		statsOutput, err := cmd.CombinedOutput()
 		if err != nil {
 			panic(err)
