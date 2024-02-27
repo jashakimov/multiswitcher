@@ -1,0 +1,6 @@
+.idea
+configs/cfg-dev.yml
+vendor
+test.txt
+/.vscode/settings.json
+*.iml

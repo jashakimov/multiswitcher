@@ -1,13 +1,15 @@
-package main
+package config
 
 import (
 	"encoding/json"
+	"github.com/jashakimov/multiswitcher/internal/utils"
 	"io"
 	"os"
 )
 
 type Config struct {
 	Interface string   `json:"interface"`
+	Port      string   "port"
 	Filters   []Filter `json:"filters"`
 }
 
@@ -40,6 +42,8 @@ func NewConfig(fileName string) *Config {
 	if err := json.Unmarshal(bytes, &cfg); err != nil {
 		panic(err)
 	}
+
+	utils.PrintConfig(&cfg)
 
 	return &cfg
 }
