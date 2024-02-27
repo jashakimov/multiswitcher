@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	_ "github.com/google/gopacket/layers"
+	"github.com/jashakimov/multiswitcher/internal/api"
 	"github.com/jashakimov/multiswitcher/internal/config"
 	"github.com/jashakimov/multiswitcher/internal/service/filter"
 	"github.com/jashakimov/multiswitcher/internal/service/statistic"
@@ -21,52 +23,71 @@ func main() {
 	fileConfig := utils.ParseFlags()
 	cfg := config.NewConfig(fileConfig)
 
-	lo, err := netlink.LinkByName(cfg.Interface)
+	link, err := netlink.LinkByName(cfg.Interface)
 	if err != nil {
 		panic(err)
 	}
 
 	log.Printf("Установка мультикаста на интерфейс: %s\n", cfg.Interface)
 	// установка мултикаста
-	if err := LinkSetMulticast(lo); err != nil {
+	if err := LinkSetMulticast(link); err != nil {
 		panic(err)
 	}
 
 	log.Printf("Установка промискуитетного режима на интерфейс: %s\n", cfg.Interface)
 	// установка промискуитетного режима
-	if err := netlink.SetPromiscOn(lo); err != nil {
+	if err := netlink.SetPromiscOn(link); err != nil {
 		panic(err)
 	}
 
 	log.Printf("Установка qdisc на интерфейс: %s\n", cfg.Interface)
 	// установка дисциплины, для последующей установки фильтров
-	if err := SetIngressQDisc(lo); err != nil {
+	if err := SetIngressQDisc(link); err != nil {
 		fmt.Println(err)
 	}
 
 	// установка маршрутизации роутеров
-	if err := Route(lo, cfg.Filters); err != nil {
+	if err := Route(link, cfg.Filters); err != nil {
 		panic(err)
 	}
 
 	db := MakeLocalDB(cfg)
-	statManager := statistic.NewService(lo)
+	statManager := statistic.NewService(link.Attrs().Name)
+	CreateFilters(db, statManager)
 
-	for _, data := range db {
-		filter.Del(lo.Attrs().Name, data.Cfg.MasterPrio, data.MasterIP, data.DstIP)
-		filter.Del(lo.Attrs().Name, data.Cfg.SlavePrio, data.SlaveIP, data.DstIP)
-		// установка мастер фильтров по умолчанию
-		filter.Add(lo.Attrs().Name, data.Cfg.MasterPrio, data.MasterIP, data.DstIP)
+	api := api.NewService(db, statManager)
+	server := gin.Default()
 
-		// Запускаем воркер на переключение слейв
-		if data.Cfg.AutoSwitch {
-			go filter.SwitchToMaster(statManager, data)
+	server.GET("/stats", api.GetConfigs)
+	server.GET("/stats/:id", api.GetConfigByID)
+	server.PATCH("/auto-switch/:id/:val", api.SetAutoSwitch)
+	server.PATCH("/switch/:id/:name", api.Switch)
+
+	go func() {
+		log.Println("Запущен сервер, порт", cfg.Port)
+		if err := server.Run(cfg.Port); err != nil {
+			panic(err)
 		}
-	}
+	}()
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
+}
+
+func CreateFilters(db map[int]filter.Filter, statService statistic.Service) {
+	for _, data := range db {
+		//удаляем старые фильтры
+		filter.Del(data.InterfaceName, data.Cfg.MasterPrio, data.MasterIP, data.DstIP)
+		filter.Del(data.InterfaceName, data.Cfg.SlavePrio, data.SlaveIP, data.DstIP)
+		// установка мастер фильтров по умолчанию
+		filter.Add(data.InterfaceName, data.Cfg.MasterPrio, data.MasterIP, data.DstIP)
+
+		// Запускаем воркер на переключение слейв
+		if data.Cfg.AutoSwitch {
+			go filter.TurnOnAutoSwitch(statService, data)
+		}
+	}
 }
 
 func SetIngressQDisc(lnk netlink.Link) interface{} {
@@ -110,6 +131,7 @@ func MakeLocalDB(cfg *config.Config) map[int]filter.Filter {
 	info := make(map[int]filter.Filter)
 	for i, f := range cfg.Filters {
 		info[i+1] = filter.Filter{
+			Id:             i + 1,
 			InterfaceName:  cfg.Interface,
 			MasterIP:       f.Master.IP,
 			SlaveIP:        f.Slave.IP,

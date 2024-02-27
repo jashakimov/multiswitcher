@@ -2,7 +2,6 @@ package statistic
 
 import (
 	"github.com/jashakimov/multiswitcher/internal/utils"
-	"github.com/vishvananda/netlink"
 	"gopkg.in/errgo.v2/fmt/errors"
 	"math/big"
 	"os/exec"
@@ -20,11 +19,11 @@ type service struct {
 	regexp *regexp.Regexp
 }
 
-func NewService(link netlink.Link) Service {
+func NewService(linkName string) Service {
 	s := &service{
 		cache: utils.NewSyncMap[string, *big.Int](),
 	}
-	s.cmd = exec.Command("tc", "-s", "-pretty", "filter", "show", "ingress", "dev", link.Attrs().Name)
+	s.cmd = exec.Command("tc", "-s", "-pretty", "filter", "show", "ingress", "dev", linkName)
 	// нам нужна инфа в скобках (match[1] и match[2])
 	s.regexp = regexp.MustCompile(`dst (\S+)/\S+\n.+\n.+\n.+\n.+Sent (\d+)`)
 

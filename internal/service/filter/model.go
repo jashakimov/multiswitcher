@@ -11,6 +11,7 @@ type Cfg struct {
 }
 
 type Filter struct {
+	Id             int
 	InterfaceName  string   `json:"interfaceName,omitempty"`
 	MasterIP       string   `json:"masterIP,omitempty"`
 	SlaveIP        string   `json:"slaveIP,omitempty"`

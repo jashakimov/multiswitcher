@@ -36,25 +36,30 @@ func Del(interfaceName string, priority int, ip, route string) {
 	}
 }
 
-func SwitchToMaster(statManager statistic.Service, info Filter) {
+func TurnOnAutoSwitch(statManager statistic.Service, info Filter) {
 	var tries int
 	t := time.NewTicker(time.Second)
-	for range t.C {
-		bytes, err := statManager.GetBytesByIP(info.MasterIP)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
 
-		if info.Bytes.Cmp(bytes) == 0 || info.Bytes.Cmp(bytes) > 0 {
-			tries++
-			if tries >= info.Cfg.Tries {
-				fmt.Println("Переключение на слейв")
-				Del(info.InterfaceName, info.Cfg.MasterPrio, info.MasterIP, info.DstIP)
-				Add(info.InterfaceName, info.Cfg.SlavePrio, info.SlaveIP, info.DstIP)
-				return
+	for {
+		select {
+		case <-t.C:
+			bytes, err := statManager.GetBytesByIP(info.MasterIP)
+			if err != nil {
+				log.Println(err)
+				continue
 			}
+
+			if info.Bytes.Cmp(bytes) == 0 || info.Bytes.Cmp(bytes) > 0 {
+				tries++
+				if tries >= info.Cfg.Tries {
+					fmt.Println("Переключение на слейв")
+					Del(info.InterfaceName, info.Cfg.MasterPrio, info.MasterIP, info.DstIP)
+					Add(info.InterfaceName, info.Cfg.SlavePrio, info.SlaveIP, info.DstIP)
+					info.IsMasterActual = false
+					return
+				}
+			}
+			info.Bytes = bytes
 		}
-		info.Bytes = bytes
 	}
 }
