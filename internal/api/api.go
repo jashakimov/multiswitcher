@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jashakimov/multiswitcher/internal/service/filter"
 	"github.com/jashakimov/multiswitcher/internal/service/statistic"
+	"github.com/jashakimov/multiswitcher/internal/utils"
 	"net/http"
 	"strconv"
 	"strings"
@@ -37,12 +38,8 @@ func (s *service) Switch(ctx *gin.Context) {
 		return
 	}
 	name := ctx.Param("name")
-	if name != "slave" {
-		ctx.String(http.StatusBadRequest, "Переключение на slave/master")
-		return
-	}
-	if name != "master" {
-		ctx.String(http.StatusBadRequest, "Переключение на slave/master")
+	if !utils.InSlice(strings.ToLower(name), []string{"master", "slave"}) {
+		ctx.String(http.StatusBadRequest, "Значение только master/slave")
 		return
 	}
 
