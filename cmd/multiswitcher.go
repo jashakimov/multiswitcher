@@ -55,7 +55,9 @@ func main() {
 	db := MakeLocalDB(cfg)
 	statManager := statistic.NewService(link.Attrs().Name, cfg.StatFrequencySec)
 	filterManager := filter.NewService(statManager)
-	CreateFilters(db, statManager)
+
+	CreateFilters(db, filterManager)
+
 	api := api.NewService(db, statManager, filterManager)
 	server := gin.Default()
 
@@ -76,7 +78,7 @@ func main() {
 	<-c
 }
 
-func CreateFilters(db map[int]*filter.Filter, statService statistic.Service) {
+func CreateFilters(db map[int]*filter.Filter, filter filter.Service) {
 	for _, data := range db {
 		//удаляем старые фильтры
 		filter.Del(data.InterfaceName, data.Cfg.MasterPrio, data.MasterIP, data.DstIP)
@@ -86,7 +88,7 @@ func CreateFilters(db map[int]*filter.Filter, statService statistic.Service) {
 
 		// Запускаем воркер на переключение слейв
 		if data.Cfg.AutoSwitch {
-			go filter.TurnOnAutoSwitch(statService, data)
+			go filter.TurnOnAutoSwitch(data)
 		}
 	}
 }
