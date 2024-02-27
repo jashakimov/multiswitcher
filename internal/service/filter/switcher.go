@@ -50,7 +50,9 @@ func TurnOnAutoSwitch(statManager statistic.Service, info Filter) {
 			}
 
 			fmt.Println("Кол-во байт", info.Bytes)
+
 			if info.Bytes == nil {
+				info.Bytes = bytes
 				continue
 			}
 
