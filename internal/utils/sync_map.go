@@ -3,7 +3,10 @@ package utils
 import "sync"
 
 func NewSyncMap[K comparable, V comparable]() *SyncMap[K, V] {
-	return &SyncMap[K, V]{}
+	return &SyncMap[K, V]{
+		items: make(map[K]V),
+		lock:  sync.RWMutex{},
+	}
 }
 
 type SyncMap[K comparable, V comparable] struct {
