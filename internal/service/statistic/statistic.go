@@ -28,6 +28,7 @@ func NewService(linkName string) Service {
 	s.regexp = regexp.MustCompile(`dst (\S+)/\S+\n.+\n.+\n.+\n.+Sent (\d+)`)
 
 	go s.readStats()
+	time.Sleep(2 * time.Second)
 
 	return s
 }
