@@ -1,6 +1,6 @@
 {
     "interface": "lo",
-    "port": 9000,
+    "port": "9000",
     "filters": [
         {
             "route": "233.0.0.1",
