@@ -17,15 +17,14 @@ type service struct {
 	cache  *utils.SyncMap[string, *big.Int]
 	cmd    *exec.Cmd
 	regexp *regexp.Regexp
+	name   string
 }
 
 func NewService(linkName string) Service {
 	s := &service{
+		name:  linkName,
 		cache: utils.NewSyncMap[string, *big.Int](),
 	}
-	s.cmd = exec.Command("tc", "-s", "-pretty", "filter", "show", "ingress", "dev", linkName)
-	// нам нужна инфа в скобках (match[1] и match[2])
-	s.regexp = regexp.MustCompile(`dst (\S+)/\S+\n.+\n.+\n.+\n.+Sent (\d+)`)
 
 	go s.readStats()
 	time.Sleep(2 * time.Second)
@@ -42,6 +41,9 @@ func (s *service) GetBytesByIP(ip string) (*big.Int, error) {
 
 func (s *service) readStats() {
 	t := time.NewTicker(time.Second)
+	s.cmd = exec.Command("tc", "-s", "-pretty", "filter", "show", "ingress", "dev", s.name)
+	// нам нужна инфа в скобках (match[1] и match[2])
+	s.regexp = regexp.MustCompile(`dst (\S+)/\S+\n.+\n.+\n.+\n.+Sent (\d+)`)
 
 	for range t.C {
 		statsOutput, err := s.cmd.CombinedOutput()
