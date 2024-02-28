@@ -31,6 +31,9 @@ func NewService(statManager statistic.Service) Service {
 }
 
 func (s *service) TurnOffAutoSwitch(ip string) {
+	if _, ok := s.workersQueue[ip]; !ok {
+		return
+	}
 	s.turnOff <- ip
 }
 
@@ -71,11 +74,9 @@ func (s *service) TurnOnAutoSwitch(info *Filter) {
 	for {
 		select {
 		case ip := <-s.turnOff:
-			if _, ok := s.workersQueue[ip]; ok {
-				log.Println("Выключение автоматического переключение", ip)
-				delete(s.workersQueue, ip)
-				return
-			}
+			log.Println("Выключение автоматического переключение", ip)
+			delete(s.workersQueue, ip)
+			return
 		case <-t.C:
 			bytes, err := s.statManager.GetBytesByIP(info.MasterIP)
 			if err != nil {
