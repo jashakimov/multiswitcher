@@ -113,7 +113,7 @@ func (s *service) SetAutoSwitch(ctx *gin.Context) {
 	}
 
 	filterInfo.Cfg.AutoSwitch = autoSwitchVal
-	if autoSwitchVal {
+	if autoSwitchVal && filterInfo.IsMasterActual {
 		go s.filterService.TurnOnAutoSwitch(filterInfo)
 	} else {
 		s.filterService.TurnOffAutoSwitch(filterInfo.Id)

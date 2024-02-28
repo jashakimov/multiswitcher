@@ -58,13 +58,14 @@ func main() {
 
 	CreateFilters(db, filterManager)
 
-	api := api.NewService(db, statManager, filterManager)
-	server := gin.Default()
+	apiService := api.NewService(db, statManager, filterManager)
+	server := gin.New()
+	server.Use(gin.Recovery(), gin.Logger())
 
-	server.GET("/stats", api.GetConfigs)
-	server.GET("/stats/:id", api.GetConfigByID)
-	server.PATCH("/auto-switch/:id/:val", api.SetAutoSwitch)
-	server.PATCH("/switch/:id/:name", api.Switch)
+	server.GET("/stats", apiService.GetConfigs)
+	server.GET("/stats/:id", apiService.GetConfigByID)
+	server.PATCH("/auto-switch/:id/:val", apiService.SetAutoSwitch)
+	server.PATCH("/switch/:id/:name", apiService.Switch)
 
 	go func() {
 		log.Println("Запущен сервер, порт", cfg.Port)
@@ -106,8 +107,8 @@ func SetIngressQDisc(lnk netlink.Link) interface{} {
 }
 
 func Route(lnk netlink.Link, filters []config.Filter) error {
-	for _, filter := range filters {
-		ipParsed := net.ParseIP(filter.Route)
+	for _, f := range filters {
+		ipParsed := net.ParseIP(f.Route)
 
 		route := &netlink.Route{
 			Dst: &net.IPNet{
@@ -124,7 +125,7 @@ func Route(lnk netlink.Link, filters []config.Filter) error {
 		if err := netlink.RouteAdd(route); err != nil {
 			return err
 		}
-		log.Printf("Установка маршрутизации %s на интерфейс: %s\n", filter.Route, lnk.Attrs().Name)
+		log.Printf("Установка маршрутизации %s на интерфейс: %s\n", f.Route, lnk.Attrs().Name)
 	}
 
 	return nil

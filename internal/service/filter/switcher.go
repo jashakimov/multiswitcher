@@ -59,12 +59,13 @@ func (s *service) Del(interfaceName string, priority int, ip, route string) {
 func (s *service) TurnOnAutoSwitch(info *Filter) {
 	var tries int
 	t := time.NewTicker(time.Duration(info.Cfg.SecToSwitch) * time.Millisecond)
+	log.Println("Включение авто-переключения при падении мастер-потока")
 
 	for {
 		select {
 		case id := <-s.turnOff:
 			if id == info.Id {
-				log.Println("Пришло уведомление о выключении автоматического переключения", info.DstIP)
+				log.Println("Выключение автоматического переключение", info.DstIP)
 				return
 			}
 		case <-t.C:
