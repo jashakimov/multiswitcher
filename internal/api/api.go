@@ -118,7 +118,7 @@ func (s *service) SetAutoSwitch(ctx *gin.Context) {
 			go s.filterService.TurnOnAutoSwitch(filterInfo)
 		}
 	} else {
-		s.filterService.TurnOffAutoSwitch(filterInfo.Id)
+		s.filterService.TurnOffAutoSwitch(filterInfo.MasterIP)
 	}
 
 	ctx.JSON(http.StatusOK, filterInfo)

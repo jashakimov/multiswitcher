@@ -13,20 +13,25 @@ type Service interface {
 	Add(interfaceName string, priority int, ip, route string)
 	Del(interfaceName string, priority int, ip, route string)
 	TurnOnAutoSwitch(info *Filter)
-	TurnOffAutoSwitch(filterID int)
+	TurnOffAutoSwitch(ip string)
 }
 
 type service struct {
-	turnOff     chan int
-	statManager statistic.Service
+	workersQueue map[string]struct{}
+	turnOff      chan string
+	statManager  statistic.Service
 }
 
 func NewService(statManager statistic.Service) Service {
-	return &service{turnOff: make(chan int, 10), statManager: statManager}
+	return &service{
+		turnOff:      make(chan string, 10),
+		statManager:  statManager,
+		workersQueue: make(map[string]struct{}),
+	}
 }
 
-func (s *service) TurnOffAutoSwitch(filterID int) {
-	s.turnOff <- filterID
+func (s *service) TurnOffAutoSwitch(ip string) {
+	s.turnOff <- ip
 }
 
 func (s *service) Add(interfaceName string, priority int, ip, route string) {
@@ -59,13 +64,16 @@ func (s *service) Del(interfaceName string, priority int, ip, route string) {
 func (s *service) TurnOnAutoSwitch(info *Filter) {
 	var tries int
 	t := time.NewTicker(time.Duration(info.Cfg.SecToSwitch) * time.Millisecond)
-	log.Println("Включение авто-переключения при падении мастер-потока")
+	log.Println("Включение авто-переключения при падении мастер-потока", info.MasterIP)
+
+	s.workersQueue[info.MasterIP] = struct{}{}
 
 	for {
 		select {
-		case id := <-s.turnOff:
-			if id == info.Id {
-				log.Println("Выключение автоматического переключение", info.DstIP)
+		case ip := <-s.turnOff:
+			if _, ok := s.workersQueue[ip]; ok {
+				log.Println("Выключение автоматического переключение", ip)
+				delete(s.workersQueue, ip)
 				return
 			}
 		case <-t.C:
