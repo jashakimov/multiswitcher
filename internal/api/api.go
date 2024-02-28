@@ -54,12 +54,6 @@ func (s *service) Switch(ctx *gin.Context) {
 		return
 	}
 
-	// переключать можем, если только автопереключение выключено
-	if filterInfo.Cfg.AutoSwitch {
-		ctx.JSON(http.StatusNotFound, "Переключить можно, если автопереключение выключено")
-		return
-	}
-
 	if name == "slave" {
 		s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
 		s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
