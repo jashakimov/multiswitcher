@@ -112,6 +112,7 @@ func (s *service) SetAutoSwitch(ctx *gin.Context) {
 		return
 	}
 
+	filterInfo.Cfg.AutoSwitch = autoSwitchVal
 	if autoSwitchVal {
 		if filterInfo.IsMasterActual {
 			go s.filterService.TurnOffAutoSwitch(filterInfo.SlaveIP)
