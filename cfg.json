@@ -1,10 +1,10 @@
 {
     "interface": "lo",
     "port": "9000",
+    "statsFrequencyMs": 1200,
     "filters": [
         {
             "route": "233.0.0.1",
-            "statsFrequencySec": 3,
             "switchTries": 3,
             "autoSwitch": true,
             "master": {

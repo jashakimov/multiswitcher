@@ -42,8 +42,8 @@ func (s *service) Switch(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
-	name := ctx.Param("name")
-	if !utils.InSlice(strings.ToLower(name), []string{"master", "slave"}) {
+	name := strings.ToLower(ctx.Param("name"))
+	if !utils.InSlice(name, []string{"master", "slave"}) {
 		ctx.JSON(http.StatusBadRequest, "Значение только master/slave")
 		return
 	}
@@ -60,7 +60,7 @@ func (s *service) Switch(ctx *gin.Context) {
 		return
 	}
 
-	if filterInfo.IsMasterActual {
+	if name == "slave" {
 		s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
 		s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
 		filterInfo.IsMasterActual = false
@@ -113,8 +113,10 @@ func (s *service) SetAutoSwitch(ctx *gin.Context) {
 	}
 
 	filterInfo.Cfg.AutoSwitch = autoSwitchVal
-	if autoSwitchVal && filterInfo.IsMasterActual {
-		go s.filterService.TurnOnAutoSwitch(filterInfo)
+	if autoSwitchVal {
+		if filterInfo.IsMasterActual {
+			go s.filterService.TurnOnAutoSwitch(filterInfo)
+		}
 	} else {
 		s.filterService.TurnOffAutoSwitch(filterInfo.Id)
 	}
