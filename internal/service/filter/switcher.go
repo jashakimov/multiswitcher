@@ -1,11 +1,11 @@
 package filter
 
 import (
-	"fmt"
 	"github.com/jashakimov/multiswitcher/internal/service/statistic"
 	"log"
 	"os/exec"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -34,7 +34,6 @@ func (s *service) TurnOffAutoSwitch(ip string) {
 	if _, ok := s.workersQueue[ip]; !ok {
 		return
 	}
-	fmt.Println("Записали в канал для отключения", ip)
 	s.turnOff <- ip
 }
 
@@ -68,41 +67,88 @@ func (s *service) Del(interfaceName string, priority int, ip, route string) {
 func (s *service) TurnOnAutoSwitch(info *Filter) {
 	var tries int
 	t := time.NewTicker(time.Duration(info.Cfg.SecToSwitch) * time.Millisecond)
-	log.Println("Включение авто-переключения при падении мастер-потока", info.MasterIP)
 
-	s.workersQueue[info.MasterIP] = struct{}{}
+	if info.IsMasterActual {
+		s.addQueue(info.MasterIP)
+	} else {
+		s.addQueue(info.SlaveIP)
+	}
 
 	for {
 		select {
 		case ip := <-s.turnOff:
-			log.Println("Выключение автоматического переключение", ip)
 			delete(s.workersQueue, ip)
 			return
 		case <-t.C:
-			bytes, err := s.statManager.GetBytesByIP(info.MasterIP)
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-			if info.Bytes == nil {
-				info.Bytes = bytes
-				continue
-			}
-
-			if info.Bytes.Cmp(bytes) == 0 || info.Bytes.Cmp(bytes) > 0 {
-				tries++
-				if tries >= info.Cfg.Tries {
-					fmt.Println("Переключение на слейв")
-					s.Del(info.InterfaceName, info.Cfg.MasterPrio, info.MasterIP, info.DstIP)
-					s.Add(info.InterfaceName, info.Cfg.SlavePrio, info.SlaveIP, info.DstIP)
-					info.IsMasterActual = false
-
-					//удалили из очереди
-					delete(s.workersQueue, info.MasterIP)
-					return
+			if info.IsMasterActual {
+				bytes, err := s.statManager.GetBytesByIP(info.MasterIP)
+				if err != nil {
+					log.Println(err)
+					continue
 				}
+				if info.Bytes == nil {
+					info.Bytes = bytes
+					continue
+				}
+
+				if info.Bytes.Cmp(bytes) == 0 || info.Bytes.Cmp(bytes) > 0 {
+					tries++
+					if tries >= info.Cfg.Tries {
+						s.Del(info.InterfaceName, info.Cfg.MasterPrio, info.MasterIP, info.DstIP)
+						s.Add(info.InterfaceName, info.Cfg.SlavePrio, info.SlaveIP, info.DstIP)
+						info.IsMasterActual = false
+
+						s.delQueue(info.MasterIP)
+
+						if info.Cfg.AutoSwitch {
+							go s.TurnOnAutoSwitch(info)
+						}
+
+						return
+					}
+				}
+				info.Bytes = bytes
+			} else {
+				bytes, err := s.statManager.GetBytesByIP(info.SlaveIP)
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+				if info.Bytes == nil {
+					info.Bytes = bytes
+					continue
+				}
+
+				if info.Bytes.Cmp(bytes) == 0 || info.Bytes.Cmp(bytes) > 0 {
+					tries++
+					if tries >= info.Cfg.Tries {
+						s.Del(info.InterfaceName, info.Cfg.SlavePrio, info.SlaveIP, info.DstIP)
+						s.Add(info.InterfaceName, info.Cfg.MasterPrio, info.MasterIP, info.DstIP)
+						info.IsMasterActual = true
+
+						s.delQueue(info.SlaveIP)
+
+						if info.Cfg.AutoSwitch {
+							go s.TurnOnAutoSwitch(info)
+						}
+
+						return
+					}
+				}
+				info.Bytes = bytes
 			}
-			info.Bytes = bytes
 		}
 	}
+}
+
+func (s *service) addQueue(ip string) {
+	var lock sync.Mutex
+	lock.Lock()
+	defer lock.Unlock()
+
+	s.workersQueue[ip] = struct{}{}
+}
+
+func (s *service) delQueue(ip string) {
+	delete(s.workersQueue, ip)
 }
