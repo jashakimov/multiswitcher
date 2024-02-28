@@ -31,7 +31,9 @@ func NewService(statManager statistic.Service) Service {
 }
 
 func (s *service) TurnOffAutoSwitch(ip string) {
+	fmt.Println("Записали в канал для отключения", ip)
 	if _, ok := s.workersQueue[ip]; !ok {
+		fmt.Println("Пусто", ip)
 		return
 	}
 	s.turnOff <- ip
