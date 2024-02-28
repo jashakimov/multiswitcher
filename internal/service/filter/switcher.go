@@ -31,11 +31,10 @@ func NewService(statManager statistic.Service) Service {
 }
 
 func (s *service) TurnOffAutoSwitch(ip string) {
-	fmt.Println("Записали в канал для отключения", ip)
 	if _, ok := s.workersQueue[ip]; !ok {
-		fmt.Println("Пусто", ip)
 		return
 	}
+	fmt.Println("Записали в канал для отключения", ip)
 	s.turnOff <- ip
 }
 
@@ -97,6 +96,9 @@ func (s *service) TurnOnAutoSwitch(info *Filter) {
 					s.Del(info.InterfaceName, info.Cfg.MasterPrio, info.MasterIP, info.DstIP)
 					s.Add(info.InterfaceName, info.Cfg.SlavePrio, info.SlaveIP, info.DstIP)
 					info.IsMasterActual = false
+
+					//удалили из очереди
+					delete(s.workersQueue, info.MasterIP)
 					return
 				}
 			}
