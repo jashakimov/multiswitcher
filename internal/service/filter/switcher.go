@@ -158,7 +158,7 @@ func (s *service) switchAndRestart(info *Filter, delIP string) {
 func (s *service) IsExistFilters(data *Filter) bool {
 	_, masterErr := s.statManager.GetBytesByIP(data.MasterIP)
 	_, slaveErr := s.statManager.GetBytesByIP(data.SlaveIP)
-	return masterErr == nil && slaveErr == nil
+	return (masterErr == nil) || (slaveErr == nil)
 }
 
 func (s *service) configureFilters(db map[int]*Filter) {
@@ -168,7 +168,7 @@ func (s *service) configureFilters(db map[int]*Filter) {
 		//filter.Del(data.InterfaceName, data.Cfg.SlavePrio, data.SlaveIP, data.DstIP)
 
 		// проверяем текущие фильтры
-		if s.IsExistFilters(data) {
+		if !s.IsExistFilters(data) {
 			// установка мастер фильтров по умолчанию
 			s.Add(data.InterfaceName, data.Cfg.MasterPrio, data.MasterIP, data.DstIP)
 		}
