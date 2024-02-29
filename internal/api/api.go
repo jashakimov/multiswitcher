@@ -57,6 +57,15 @@ func (s *service) switchFilter(ctx *gin.Context) {
 		return
 	}
 
+	switch {
+	case name == "slave" && !filterInfo.IsMasterActual:
+		ctx.JSON(http.StatusBadRequest, "Фильтр уже на slave")
+		return
+	case name == "master" && filterInfo.IsMasterActual:
+		ctx.JSON(http.StatusBadRequest, "Фильтр уже на master")
+		return
+	}
+
 	if name == "slave" {
 		s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
 		s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
