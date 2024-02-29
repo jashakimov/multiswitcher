@@ -10,19 +10,18 @@ import (
 	"strings"
 )
 
-type Service interface {
-	GetConfigByID(ctx *gin.Context)
-	GetConfigs(ctx *gin.Context)
-	SetAutoSwitch(ctx *gin.Context)
-	Switch(ctx *gin.Context)
-}
-
-func NewService(
+func RegisterAPI(
+	server *gin.Engine,
 	db map[int]*filter.Filter,
 	statService statistic.Service,
 	filterService filter.Service,
-) Service {
-	return &service{db: db, statService: statService, filterService: filterService}
+) {
+	s := &service{db: db, statService: statService, filterService: filterService}
+
+	server.GET("/stats", s.getConfigs)
+	server.GET("/stats/:id", s.getConfigByID)
+	server.PATCH("/auto-switch/:id/:val", s.setAutoSwitch)
+	server.PATCH("/switch/:id/:name", s.switchFilter)
 }
 
 type service struct {
@@ -31,11 +30,15 @@ type service struct {
 	filterService filter.Service
 }
 
-func (s *service) GetConfigs(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, s.db)
+func (s *service) getConfigs(ctx *gin.Context) {
+	var filters []*filter.Filter
+	for _, f := range s.db {
+		filters = append(filters, f)
+	}
+	ctx.JSON(http.StatusOK, filters)
 }
 
-func (s *service) Switch(ctx *gin.Context) {
+func (s *service) switchFilter(ctx *gin.Context) {
 	rawId := ctx.Param("id")
 	id, err := strconv.Atoi(rawId)
 	if err != nil {
@@ -63,9 +66,11 @@ func (s *service) Switch(ctx *gin.Context) {
 		s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
 		filterInfo.IsMasterActual = true
 	}
+
+	ctx.JSON(http.StatusOK, filterInfo)
 }
 
-func (s *service) GetConfigByID(ctx *gin.Context) {
+func (s *service) getConfigByID(ctx *gin.Context) {
 	rawId := ctx.Param("id")
 	id, err := strconv.Atoi(rawId)
 	if err != nil {
@@ -81,7 +86,7 @@ func (s *service) GetConfigByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, filterInfo)
 }
 
-func (s *service) SetAutoSwitch(ctx *gin.Context) {
+func (s *service) setAutoSwitch(ctx *gin.Context) {
 	rawId := ctx.Param("id")
 	id, err := strconv.Atoi(rawId)
 	if err != nil {
@@ -107,6 +112,7 @@ func (s *service) SetAutoSwitch(ctx *gin.Context) {
 	}
 
 	filterInfo.Cfg.AutoSwitch = autoSwitchVal
+
 	if autoSwitchVal {
 		if filterInfo.IsMasterActual {
 			go s.filterService.TurnOffAutoSwitch(filterInfo.SlaveIP)
