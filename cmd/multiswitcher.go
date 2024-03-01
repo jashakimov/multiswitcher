@@ -51,13 +51,12 @@ func MakeLocalDB(cfg *config.Config) map[int]*filter.Filter {
 	info := make(map[int]*filter.Filter)
 	for i, f := range cfg.Filters {
 		info[i+1] = &filter.Filter{
-			Id:             i + 1,
-			InterfaceName:  cfg.Interface,
-			MasterIP:       f.Master.IP,
-			SlaveIP:        f.Slave.IP,
-			DstIP:          f.Route,
-			IsMasterActual: true,
-			Bytes:          nil,
+			Id:            i + 1,
+			InterfaceName: cfg.Interface,
+			MasterIP:      f.Master.IP,
+			SlaveIP:       f.Slave.IP,
+			DstIP:         f.Route,
+			Bytes:         nil,
 			Cfg: filter.Cfg{
 				Tries:       f.SwitchTries,
 				SecToSwitch: cfg.StatFrequencySec,

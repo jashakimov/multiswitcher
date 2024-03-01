@@ -14,7 +14,7 @@ type Service interface {
 	Del(interfaceName string, priority int, ip, route string)
 	TurnOnAutoSwitch(info *Filter)
 	TurnOffAutoSwitch(ip string)
-	IsExistFilters(data *Filter) bool
+	IsExistFilters(data *Filter) (bool, bool)
 }
 
 type service struct {
@@ -155,10 +155,10 @@ func (s *service) switchAndRestart(info *Filter, delIP string) {
 	}
 }
 
-func (s *service) IsExistFilters(data *Filter) bool {
+func (s *service) IsExistFilters(data *Filter) (bool, bool) {
 	_, masterErr := s.statManager.GetBytesByIP(data.MasterIP)
 	_, slaveErr := s.statManager.GetBytesByIP(data.SlaveIP)
-	return (masterErr == nil) || (slaveErr == nil)
+	return masterErr == nil, slaveErr == nil
 }
 
 func (s *service) configureFilters(db map[int]*Filter) {
@@ -168,8 +168,15 @@ func (s *service) configureFilters(db map[int]*Filter) {
 		//filter.Del(data.InterfaceName, data.Cfg.SlavePrio, data.SlaveIP, data.DstIP)
 
 		// проверяем текущие фильтры
-		if !s.IsExistFilters(data) {
+		isMaster, isSlave := s.IsExistFilters(data)
+		switch {
+		case isSlave:
+			data.IsMasterActual = false
+		case isMaster:
+			data.IsMasterActual = true
 			// установка мастер фильтров по умолчанию
+		case !isSlave && !isMaster:
+			data.IsMasterActual = true
 			s.Add(data.InterfaceName, data.Cfg.MasterPrio, data.MasterIP, data.DstIP)
 		}
 
