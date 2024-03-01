@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"fmt"
 	"github.com/jashakimov/multiswitcher/internal/service/statistic"
 	"log"
 	"os/exec"
@@ -112,7 +111,7 @@ func (s *service) TurnOnAutoSwitch(info *Filter) {
 			}
 
 			oldBytes := info.GetBytes()
-			fmt.Println("Кол-во новых байт:", newBytes.String(), ", старых", oldBytes, "Попыток", tries, "ip", ip)
+			//fmt.Println("Кол-во новых байт:", newBytes.String(), ", старых", oldBytes, "Попыток", tries, "ip", ip)
 			if oldBytes.Cmp(newBytes) == 0 || oldBytes.Cmp(newBytes) > 0 {
 				tries++
 				if tries >= info.Cfg.Tries {

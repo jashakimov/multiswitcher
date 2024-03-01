@@ -68,7 +68,6 @@ func (s *service) switchFilter(ctx *gin.Context) {
 
 	if name == "slave" {
 		filterInfo.IsMasterActual = false
-
 		if filterInfo.Cfg.AutoSwitch {
 			s.filterService.TurnOffAutoSwitch(filterInfo.MasterIP)
 			s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
