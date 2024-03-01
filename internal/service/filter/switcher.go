@@ -87,9 +87,10 @@ func (s *service) TurnOnAutoSwitch(info *Filter) {
 	for {
 		select {
 		case ip := <-s.turnOff:
-			s.deleteIP(ip)
-			return
-
+			if _, ok := s.workersQueue[ip]; ok {
+				s.deleteIP(ip)
+				return
+			}
 		case <-t.C:
 			bytes, err := s.statManager.GetBytesByIP(ip)
 			if err != nil {
@@ -128,24 +129,24 @@ func (s *service) deleteIP(ip string) {
 
 func (s *service) switchAndRestart(info *Filter, delIP string) {
 	var (
-		masterIP, slaveIP     string
-		masterPrio, slavePrio int
+		actualIP, changingIP     string
+		actualPrio, changingPrio int
 	)
 
 	if info.IsMasterActual {
-		masterIP = info.MasterIP
-		slaveIP = info.SlaveIP
-		masterPrio = info.Cfg.MasterPrio
-		slavePrio = info.Cfg.SlavePrio
+		actualIP = info.MasterIP
+		changingIP = info.SlaveIP
+		actualPrio = info.Cfg.MasterPrio
+		changingPrio = info.Cfg.SlavePrio
 	} else {
-		masterIP = info.SlaveIP
-		slaveIP = info.MasterIP
-		masterPrio = info.Cfg.SlavePrio
-		slavePrio = info.Cfg.MasterPrio
+		actualIP = info.SlaveIP
+		changingIP = info.MasterIP
+		actualPrio = info.Cfg.SlavePrio
+		changingPrio = info.Cfg.MasterPrio
 	}
 
-	s.Del(info.InterfaceName, masterPrio, masterIP, info.DstIP)
-	s.Add(info.InterfaceName, slavePrio, slaveIP, info.DstIP)
+	s.Del(info.InterfaceName, actualPrio, actualIP, info.DstIP)
+	s.Add(info.InterfaceName, changingPrio, changingIP, info.DstIP)
 	info.IsMasterActual = !info.IsMasterActual
 
 	s.deleteIP(delIP)
