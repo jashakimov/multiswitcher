@@ -67,13 +67,24 @@ func (s *service) switchFilter(ctx *gin.Context) {
 	}
 
 	if name == "slave" {
-		s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
-		s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
 		filterInfo.IsMasterActual = false
+
+		if filterInfo.Cfg.AutoSwitch {
+			s.filterService.TurnOffAutoSwitch(filterInfo.MasterIP)
+			go s.filterService.TurnOnAutoSwitch(filterInfo)
+		} else {
+			s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
+			s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
+		}
 	} else {
-		s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
-		s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
 		filterInfo.IsMasterActual = true
+		if filterInfo.Cfg.AutoSwitch {
+			s.filterService.TurnOffAutoSwitch(filterInfo.SlaveIP)
+			go s.filterService.TurnOnAutoSwitch(filterInfo)
+		} else {
+			s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
+			s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
+		}
 	}
 
 	ctx.JSON(http.StatusOK, filterInfo)
