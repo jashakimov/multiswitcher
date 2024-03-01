@@ -102,17 +102,17 @@ func (s *service) TurnOnAutoSwitch(info *Filter) {
 			}
 
 			if info.IsMasterActual && info.MasterBytes == nil {
-				info.MasterBytes = newBytes
+				info.SetBytes(newBytes)
 				continue
 
 			}
 			if !info.IsMasterActual && info.SlaveBytes == nil {
-				info.SlaveBytes = newBytes
+				info.SetBytes(newBytes)
 				continue
 			}
 
 			oldBytes := info.GetBytes()
-			fmt.Println("Кол-во новых байт:", newBytes.String(), ", старых", info.MasterBytes, "Попыток", tries)
+			fmt.Println("Кол-во новых байт:", newBytes.String(), ", старых", oldBytes, "Попыток", tries, "ip", ip)
 			if oldBytes.Cmp(newBytes) == 0 || oldBytes.Cmp(newBytes) > 0 {
 				tries++
 				if tries >= info.Cfg.Tries {
