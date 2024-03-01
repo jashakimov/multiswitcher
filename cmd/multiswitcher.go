@@ -56,7 +56,7 @@ func MakeLocalDB(cfg *config.Config) map[int]*filter.Filter {
 			MasterIP:      f.Master.IP,
 			SlaveIP:       f.Slave.IP,
 			DstIP:         f.Route,
-			Bytes:         nil,
+			MasterBytes:   nil,
 			Cfg: filter.Cfg{
 				Tries:       f.SwitchTries,
 				SecToSwitch: cfg.StatFrequencySec,

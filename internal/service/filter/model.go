@@ -17,6 +17,22 @@ type Filter struct {
 	SlaveIP        string   `json:"slaveIP"`
 	DstIP          string   `json:"dstIP"`
 	IsMasterActual bool     `json:"isMasterActual"`
-	Bytes          *big.Int `json:"bytes"`
+	MasterBytes    *big.Int `json:"masterBytes"`
+	SlaveBytes     *big.Int `json:"slaveBytes"`
 	Cfg            Cfg      `json:"config"`
+}
+
+func (f *Filter) SetBytes(val *big.Int) {
+	if f.IsMasterActual {
+		f.MasterBytes = val
+	} else {
+		f.SlaveBytes = val
+	}
+}
+
+func (f *Filter) GetBytes() *big.Int {
+	if f.IsMasterActual {
+		return f.MasterBytes
+	}
+	return f.SlaveBytes
 }

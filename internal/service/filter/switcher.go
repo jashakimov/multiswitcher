@@ -95,25 +95,31 @@ func (s *service) TurnOnAutoSwitch(info *Filter) {
 				return
 			}
 		case <-t.C:
-			bytes, err := s.statManager.GetBytesByIP(ip)
+			newBytes, err := s.statManager.GetBytesByIP(ip)
 			if err != nil {
 				log.Println(err)
 				continue
 			}
-			fmt.Println("Кол-во новых байт:", bytes.String(), ", старых", info.Bytes, "Попыток", tries)
-			if info.Bytes == nil {
-				info.Bytes = bytes
+			fmt.Println("Кол-во новых байт:", newBytes.String(), ", старых", info.MasterBytes, "Попыток", tries)
+			if info.IsMasterActual && info.MasterBytes == nil {
+				info.MasterBytes = newBytes
+				continue
+
+			}
+			if !info.IsMasterActual && info.SlaveBytes == nil {
+				info.SlaveBytes = newBytes
 				continue
 			}
 
-			if info.Bytes.Cmp(bytes) == 0 || info.Bytes.Cmp(bytes) > 0 {
+			oldBytes := info.GetBytes()
+			if oldBytes.Cmp(newBytes) == 0 || oldBytes.Cmp(newBytes) > 0 {
 				tries++
 				if tries >= info.Cfg.Tries {
 					s.switchAndRestart(info, ip)
 					return
 				}
 			}
-			info.Bytes = bytes
+			info.SetBytes(newBytes)
 		}
 	}
 }
