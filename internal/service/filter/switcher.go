@@ -83,10 +83,12 @@ func (s *service) TurnOnAutoSwitch(info *Filter) {
 		s.addIP(info.SlaveIP)
 		ip = info.SlaveIP
 	}
+	log.Println("Включаем автопереключеине для ", ip)
 
 	for {
 		select {
 		case ip := <-s.turnOff:
+			log.Println("Отключаем автопереключеине для ", ip)
 			if _, ok := s.workersQueue[ip]; ok {
 				s.deleteIP(ip)
 				return
@@ -145,6 +147,7 @@ func (s *service) switchAndRestart(info *Filter, delIP string) {
 		changingPrio = info.Cfg.MasterPrio
 	}
 
+	log.Printf("Меняем с %s на %s \n", actualIP, changingIP)
 	s.Del(info.InterfaceName, actualPrio, actualIP, info.DstIP)
 	s.Add(info.InterfaceName, changingPrio, changingIP, info.DstIP)
 	info.IsMasterActual = !info.IsMasterActual
