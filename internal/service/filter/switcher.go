@@ -100,7 +100,7 @@ func (s *service) TurnOnAutoSwitch(info *Filter) {
 				log.Println(err)
 				continue
 			}
-			fmt.Println("Кол-во байт:", bytes.String(), "Попыток", tries)
+			fmt.Println("Кол-во новых байт:", bytes.String(), ", старых", info.Bytes, "Попыток", tries)
 			if info.Bytes == nil {
 				info.Bytes = bytes
 				continue
