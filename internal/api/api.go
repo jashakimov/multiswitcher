@@ -71,6 +71,8 @@ func (s *service) switchFilter(ctx *gin.Context) {
 
 		if filterInfo.Cfg.AutoSwitch {
 			s.filterService.TurnOffAutoSwitch(filterInfo.MasterIP)
+			s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
+			s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
 			go s.filterService.TurnOnAutoSwitch(filterInfo)
 		} else {
 			s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
@@ -80,11 +82,14 @@ func (s *service) switchFilter(ctx *gin.Context) {
 		filterInfo.IsMasterActual = true
 		if filterInfo.Cfg.AutoSwitch {
 			s.filterService.TurnOffAutoSwitch(filterInfo.SlaveIP)
+			s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
+			s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
 			go s.filterService.TurnOnAutoSwitch(filterInfo)
 		} else {
 			s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
 			s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
 		}
+
 	}
 
 	ctx.JSON(http.StatusOK, filterInfo)

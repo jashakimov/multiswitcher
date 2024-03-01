@@ -98,7 +98,7 @@ func (s *service) TurnOnAutoSwitch(info *Filter) {
 			newBytes, err := s.statManager.GetBytesByIP(ip)
 			if err != nil {
 				log.Println(err)
-				continue
+				return
 			}
 
 			if info.IsMasterActual && info.MasterBytes == nil {
