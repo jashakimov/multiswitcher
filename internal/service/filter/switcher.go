@@ -113,7 +113,6 @@ func (s *service) TurnOnAutoSwitch(info *Filter) {
 					return
 				}
 			}
-			tries = 0
 			info.Bytes = bytes
 		}
 	}
