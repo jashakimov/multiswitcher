@@ -100,7 +100,7 @@ func (s *service) TurnOnAutoSwitch(info *Filter) {
 				log.Println(err)
 				continue
 			}
-			fmt.Println("Кол-во новых байт:", newBytes.String(), ", старых", info.MasterBytes, "Попыток", tries)
+
 			if info.IsMasterActual && info.MasterBytes == nil {
 				info.MasterBytes = newBytes
 				continue
@@ -112,10 +112,12 @@ func (s *service) TurnOnAutoSwitch(info *Filter) {
 			}
 
 			oldBytes := info.GetBytes()
+			fmt.Println("Кол-во новых байт:", newBytes.String(), ", старых", info.MasterBytes, "Попыток", tries)
 			if oldBytes.Cmp(newBytes) == 0 || oldBytes.Cmp(newBytes) > 0 {
 				tries++
 				if tries >= info.Cfg.Tries {
 					s.switchAndRestart(info, ip)
+					info.SetBytes(nil)
 					return
 				}
 			}
