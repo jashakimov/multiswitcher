@@ -120,16 +120,7 @@ func (s *service) setAutoSwitch(ctx *gin.Context) {
 	filterInfo.Cfg.AutoSwitch = autoSwitchVal
 
 	if autoSwitchVal {
-		if filterInfo.IsMasterActual {
-			go s.filterService.TurnOffAutoSwitch(filterInfo.SlaveIP)
-			go s.filterService.TurnOnAutoSwitch(filterInfo)
-		} else {
-			go s.filterService.TurnOffAutoSwitch(filterInfo.MasterIP)
-			go s.filterService.TurnOnAutoSwitch(filterInfo)
-		}
-	} else {
-		go s.filterService.TurnOffAutoSwitch(filterInfo.SlaveIP)
-		go s.filterService.TurnOffAutoSwitch(filterInfo.MasterIP)
+		go s.filterService.TurnOffAutoSwitch(filterInfo)
 	}
 
 	ctx.JSON(http.StatusOK, filterInfo)
