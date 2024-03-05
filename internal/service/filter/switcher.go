@@ -134,6 +134,10 @@ func (s *service) addIP(ip string) {
 }
 
 func (s *service) deleteIP(ip string) {
+	var lock sync.Mutex
+	lock.Lock()
+	defer lock.Unlock()
+
 	delete(s.workersQueue, ip)
 }
 
