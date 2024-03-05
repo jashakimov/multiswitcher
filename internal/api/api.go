@@ -6,6 +6,7 @@ import (
 	"github.com/jashakimov/multiswitcher/internal/service/statistic"
 	"github.com/jashakimov/multiswitcher/internal/utils"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -35,6 +36,9 @@ func (s *service) getConfigs(ctx *gin.Context) {
 	for _, f := range s.db {
 		filters = append(filters, f)
 	}
+	sort.Slice(filters, func(i, j int) bool {
+		return filters[i].Id > filters[j].Id
+	})
 	ctx.JSON(http.StatusOK, filters)
 }
 
@@ -64,31 +68,6 @@ func (s *service) switchFilter(ctx *gin.Context) {
 	case name == "master" && filterInfo.IsMasterActual:
 		ctx.JSON(http.StatusBadRequest, "Фильтр уже на master")
 		return
-	}
-
-	if name == "slave" {
-		filterInfo.IsMasterActual = false
-		if filterInfo.Cfg.AutoSwitch {
-			s.filterService.TurnOffAutoSwitch(filterInfo.MasterIP)
-			s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
-			s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
-			go s.filterService.TurnOnAutoSwitch(filterInfo)
-		} else {
-			s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
-			s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
-		}
-	} else {
-		filterInfo.IsMasterActual = true
-		if filterInfo.Cfg.AutoSwitch {
-			s.filterService.TurnOffAutoSwitch(filterInfo.SlaveIP)
-			s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
-			s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
-			go s.filterService.TurnOnAutoSwitch(filterInfo)
-		} else {
-			s.filterService.Del(filterInfo.InterfaceName, filterInfo.Cfg.SlavePrio, filterInfo.SlaveIP, filterInfo.DstIP)
-			s.filterService.Add(filterInfo.InterfaceName, filterInfo.Cfg.MasterPrio, filterInfo.MasterIP, filterInfo.DstIP)
-		}
-
 	}
 
 	ctx.JSON(http.StatusOK, filterInfo)
