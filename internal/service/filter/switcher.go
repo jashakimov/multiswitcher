@@ -131,9 +131,6 @@ func (s *service) AutoSwitch(f *Filter) {
 				return
 			}
 		case <-t.C:
-			if !f.Cfg.AutoSwitch {
-				return
-			}
 			bytes, err := s.statManager.GetBytesByIP(actualIP)
 
 			if err != nil {
@@ -145,7 +142,7 @@ func (s *service) AutoSwitch(f *Filter) {
 				continue
 			}
 			// если количество новых байтов не изменилось
-			if f.GetBytes().Cmp(bytes) == 0 {
+			if f.GetBytes().Cmp(bytes) == 0 && f.Cfg.AutoSwitch {
 				tries++
 				if tries >= f.Cfg.Tries {
 					f.SetBytes(nil)
