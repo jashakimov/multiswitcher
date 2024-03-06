@@ -14,6 +14,7 @@ type Service interface {
 	Del(interfaceName string, priority int, ip, route string)
 	IsExistFilters(data *Filter) (bool, bool)
 	AutoSwitch(f *Filter)
+	ChangeFilter(f *Filter)
 	TurnOffAutoSwitch(f *Filter)
 }
 

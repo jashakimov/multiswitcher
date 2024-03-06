@@ -71,6 +71,7 @@ func (s *service) switchFilter(ctx *gin.Context) {
 	}
 
 	go s.filterService.TurnOffAutoSwitch(filterInfo)
+	s.filterService.ChangeFilter(filterInfo)
 	filterInfo.IsMasterActual = !filterInfo.IsMasterActual
 	go s.filterService.AutoSwitch(filterInfo)
 
