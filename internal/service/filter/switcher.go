@@ -152,8 +152,8 @@ func (s *service) AutoSwitch(f *Filter) {
 				}
 			} else {
 				tries = 0
+				f.SetBytes(bytes)
 			}
-
 		}
 	}
 }
