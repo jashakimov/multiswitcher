@@ -104,6 +104,8 @@ func (s *service) configureFilters(db map[int]*Filter) {
 			data.IsMasterActual = true
 			s.Add(data.InterfaceName, data.Cfg.MasterPrio, data.MasterIP, data.DstIP)
 		}
+
+		go s.AutoSwitch(data)
 	}
 }
 
