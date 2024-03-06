@@ -96,6 +96,7 @@ func (s *service) configureFilters(db map[int]*Filter) {
 
 		// проверяем текущие фильтры
 		isMaster, isSlave := s.IsExistFilters(data)
+		fmt.Println("Фильтр мастера", isMaster, "Фильтр слейва", isMaster)
 		switch {
 		case isSlave:
 			data.IsMasterActual = false
