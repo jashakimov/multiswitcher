@@ -96,7 +96,7 @@ func (s *service) configureFilters(db map[int]*Filter) {
 
 		// проверяем текущие фильтры
 		isMaster, isSlave := s.IsExistFilters(data)
-		fmt.Println("Фильтр мастера", isMaster, "Фильтр слейва", isMaster)
+		fmt.Println("Фильтр мастера", isMaster, "Фильтр слейва", isSlave)
 		switch {
 		case isSlave:
 			data.IsMasterActual = false
@@ -135,6 +135,7 @@ func (s *service) AutoSwitch(f *Filter) {
 				return
 			}
 			bytes, err := s.statManager.GetBytesByIP(actualIP)
+			fmt.Println("Количество байтов из мастер=", f.IsMasterActual)
 			if err != nil {
 				log.Println(err)
 				return
