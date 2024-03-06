@@ -13,7 +13,7 @@ type Service interface {
 	Add(interfaceName string, priority int, ip, route string)
 	Del(interfaceName string, priority int, ip, route string)
 	IsExistFilters(data *Filter) (bool, bool)
-	TurnOnAutoSwitch(f *Filter)
+	AutoSwitch(f *Filter)
 	TurnOffAutoSwitch(f *Filter)
 }
 
@@ -85,6 +85,10 @@ func (s *service) IsExistFilters(data *Filter) (bool, bool) {
 	return masterErr == nil, slaveErr == nil
 }
 
+func (s *service) TurnOffAutoSwitch(f *Filter) {
+	s.turnOff <- f
+}
+
 func (s *service) configureFilters(db map[int]*Filter) {
 	for _, data := range db {
 
@@ -100,113 +104,76 @@ func (s *service) configureFilters(db map[int]*Filter) {
 			data.IsMasterActual = true
 			s.Add(data.InterfaceName, data.Cfg.MasterPrio, data.MasterIP, data.DstIP)
 		}
-
-		// Запускаем воркер на переключение слейв
-		if data.Cfg.AutoSwitch {
-			go s.autoRunner()
-			go s.TurnOnAutoSwitch(data)
-		}
 	}
 }
 
-func (s *service) TurnOnAutoSwitch(f *Filter) {
-	s.turnOn <- f
-}
+func (s *service) AutoSwitch(f *Filter) {
+	var tries int
+	actualIP := f.GetActualIP()
+	if _, ok := s.workersQueue[actualIP]; ok {
+		return
+	}
 
-func (s *service) TurnOffAutoSwitch(f *Filter) {
-	s.turnOff <- f
-}
+	s.addIP(actualIP)
 
-func (s *service) autoRunner() {
+	t := time.NewTicker(time.Duration(f.Cfg.SecToSwitch) * time.Millisecond)
 	for {
 		select {
-		case f := <-s.turnOn:
-			go func() {
-				var (
-					tries int
-					ip    string
-				)
-				t := time.NewTicker(time.Duration(f.Cfg.SecToSwitch) * time.Millisecond)
-
-				if f.IsMasterActual {
-					s.addIP(f.MasterIP)
-					ip = f.MasterIP
-				} else {
-					s.addIP(f.SlaveIP)
-					ip = f.SlaveIP
+		case filter := <-s.turnOff:
+			ip := filter.GetActualIP()
+			if _, ok := s.workersQueue[ip]; ok {
+				s.deleteIP(ip)
+				return
+			}
+		case <-t.C:
+			if !f.Cfg.AutoSwitch {
+				return
+			}
+			bytes, err := s.statManager.GetBytesByIP(actualIP)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			if f.GetBytes() == nil {
+				f.SetBytes(bytes)
+				continue
+			}
+			// если количество новых байтов не изменилось
+			if f.GetBytes().Cmp(bytes) == 0 {
+				tries++
+				if tries >= f.Cfg.Tries {
+					f.SetBytes(nil)
+					f.IsMasterActual = !f.IsMasterActual
+					s.deleteIP(actualIP)
+					s.ChangeFilter(f)
+					tries = 0
 				}
-				log.Println("Включаем автопереключеине для ", ip)
-
-				for range t.C {
-					newBytes, err := s.statManager.GetBytesByIP(ip)
-					if err != nil {
-						log.Println(err)
-						return
-					}
-
-					if f.IsMasterActual && f.MasterBytes == nil {
-						f.SetBytes(newBytes)
-						continue
-
-					}
-					if !f.IsMasterActual && f.SlaveBytes == nil {
-						f.SetBytes(newBytes)
-						continue
-					}
-
-					oldBytes := f.GetBytes()
-					if oldBytes.Cmp(newBytes) == 0 || oldBytes.Cmp(newBytes) > 0 {
-						tries++
-						if tries >= f.Cfg.Tries {
-							f.IsMasterActual = !f.IsMasterActual
-							s.turnOff <- f
-							f.SetBytes(nil)
-							return
-						}
-					}
-					f.SetBytes(newBytes)
-				}
-			}()
-
-		case f := <-s.turnOff:
-			s.switchFilters(f, false)
-
-			if f.IsMasterActual {
-				s.deleteIP(f.MasterIP)
 			} else {
-				s.deleteIP(f.SlaveIP)
+				tries = 0
 			}
 
-			if f.Cfg.AutoSwitch {
-				s.turnOn <- f
-			}
 		}
 	}
 }
 
-func (s *service) switchFilters(info *Filter, isAdd bool) {
-	var (
-		actualIP, changingIP     string
-		actualPrio, changingPrio int
-	)
+func (s *service) ChangeFilter(f *Filter) {
+	var actualIP, newIP string
+	var actualPrio, newPrio int
 
-	if info.IsMasterActual {
-		actualIP = info.MasterIP
-		changingIP = info.SlaveIP
-		actualPrio = info.Cfg.MasterPrio
-		changingPrio = info.Cfg.SlavePrio
+	if f.IsMasterActual {
+		actualIP = f.MasterIP
+		actualPrio = f.Cfg.MasterPrio
+
+		newIP = f.SlaveIP
+		newPrio = f.Cfg.SlavePrio
 	} else {
-		actualIP = info.SlaveIP
-		changingIP = info.MasterIP
-		actualPrio = info.Cfg.SlavePrio
-		changingPrio = info.Cfg.MasterPrio
+		actualIP = f.SlaveIP
+		actualPrio = f.Cfg.SlavePrio
+
+		newIP = f.MasterIP
+		newPrio = f.Cfg.MasterPrio
 	}
 
-	if isAdd {
-		log.Println("Добавляем фильтр:", changingIP)
-		s.Add(info.InterfaceName, changingPrio, changingIP, info.DstIP)
-	} else {
-		log.Println("Удаляем фильтр:", changingIP)
-		s.Del(info.InterfaceName, actualPrio, actualIP, info.DstIP)
-	}
+	s.Del(f.InterfaceName, actualPrio, actualIP, f.DstIP)
+	s.Add(f.InterfaceName, newPrio, newIP, f.DstIP)
 }

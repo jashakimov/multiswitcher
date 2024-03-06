@@ -36,3 +36,10 @@ func (f *Filter) GetBytes() *big.Int {
 	}
 	return f.SlaveBytes
 }
+
+func (f *Filter) GetActualIP() string {
+	if f.IsMasterActual {
+		return f.MasterIP
+	}
+	return f.SlaveIP
+}
