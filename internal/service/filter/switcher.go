@@ -149,7 +149,8 @@ func (s *service) AutoSwitch(f *Filter) {
 					f.IsMasterActual = !f.IsMasterActual
 					s.deleteIP(actualIP)
 					s.ChangeFilter(f)
-					tries = 0
+					go s.AutoSwitch(f)
+					return
 				}
 			} else {
 				tries = 0
