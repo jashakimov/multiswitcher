@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"fmt"
 	"github.com/jashakimov/multiswitcher/internal/service/statistic"
 	"log"
 	"os/exec"
@@ -97,7 +96,7 @@ func (s *service) configureFilters(db map[int]*Filter) {
 		// проверяем текущие фильтры
 		time.Sleep(time.Second)
 		isMaster, isSlave := s.IsExistFilters(data)
-		fmt.Println("Фильтр мастера", isMaster, "Фильтр слейва", isSlave)
+
 		switch {
 		case isSlave:
 			data.IsMasterActual = false
@@ -136,7 +135,7 @@ func (s *service) AutoSwitch(f *Filter) {
 				return
 			}
 			bytes, err := s.statManager.GetBytesByIP(actualIP)
-			fmt.Println("Количество байтов из мастер=", f.IsMasterActual)
+
 			if err != nil {
 				log.Println(err)
 				return
@@ -148,14 +147,11 @@ func (s *service) AutoSwitch(f *Filter) {
 			// если количество новых байтов не изменилось
 			if f.GetBytes().Cmp(bytes) == 0 {
 				tries++
-				fmt.Println("Статус мастера", f.IsMasterActual)
 				if tries >= f.Cfg.Tries {
-					fmt.Println("Было попыток", tries)
 					f.SetBytes(nil)
 					s.ChangeFilter(f)
 					f.IsMasterActual = !f.IsMasterActual
 					s.deleteIP(actualIP)
-					fmt.Println("Статус мастера", f.IsMasterActual)
 					go s.AutoSwitch(f)
 					return
 				}

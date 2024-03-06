@@ -1,7 +1,6 @@
 package statistic
 
 import (
-	"fmt"
 	"github.com/jashakimov/multiswitcher/internal/utils"
 	"gopkg.in/errgo.v2/fmt/errors"
 	"math/big"
@@ -50,7 +49,7 @@ func (s *service) readStats(timeoutMs int) {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(string(statsOutput))
+
 		matches := reg.FindAllStringSubmatch(string(statsOutput), -1)
 
 		for _, match := range matches {
