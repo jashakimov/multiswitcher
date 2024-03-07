@@ -37,7 +37,7 @@ func (s *service) getConfigs(ctx *gin.Context) {
 		filters = append(filters, f)
 	}
 	sort.Slice(filters, func(i, j int) bool {
-		return filters[i].Id > filters[j].Id
+		return filters[i].Id < filters[j].Id
 	})
 	ctx.JSON(http.StatusOK, filters)
 }

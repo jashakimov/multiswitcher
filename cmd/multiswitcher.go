@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	_ "github.com/google/gopacket/layers"
 	"github.com/jashakimov/multiswitcher/internal/api"
@@ -48,8 +49,14 @@ func main() {
 }
 
 func MakeLocalDB(cfg *config.Config) map[int]*filter.Filter {
+	master := 1
+	slave := len(cfg.Filters) + 1
+
 	info := make(map[int]*filter.Filter)
+	fmt.Println(len(cfg.Filters))
 	for i, f := range cfg.Filters {
+		master++
+		slave++
 		info[i+1] = &filter.Filter{
 			Id:            i + 1,
 			InterfaceName: cfg.Interface,
@@ -60,11 +67,12 @@ func MakeLocalDB(cfg *config.Config) map[int]*filter.Filter {
 			Cfg: filter.Cfg{
 				Tries:       f.SwitchTries,
 				SecToSwitch: cfg.StatFrequencySec,
-				MasterPrio:  9 + i,
-				SlavePrio:   10 + i,
+				MasterPrio:  master,
+				SlavePrio:   slave,
 				AutoSwitch:  f.AutoSwitch,
 			},
 		}
 	}
+
 	return info
 }
