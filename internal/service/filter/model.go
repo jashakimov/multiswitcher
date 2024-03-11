@@ -1,6 +1,9 @@
 package filter
 
-import "math/big"
+import (
+	"math/big"
+	"sync"
+)
 
 type Cfg struct {
 	Tries      int  `json:"tries"`
@@ -22,7 +25,11 @@ type Filter struct {
 	Cfg            Cfg      `json:"config"`
 }
 
+var mu sync.Mutex
+
 func (f *Filter) SetBytes(val *big.Int) {
+	mu.Lock()
+	defer mu.Unlock()
 	if f.IsMasterActual {
 		f.MasterBytes = val
 	} else {

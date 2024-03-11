@@ -146,7 +146,7 @@ func (s *service) AutoSwitch(f *Filter) {
 			}
 		case <-t.C:
 			bytes, err := s.statManager.GetBytesByIP(actualIP)
-			fmt.Printf("Получено %s, для %s\n", bytes.String(), actualIP)
+			fmt.Printf("Получено %s, ,было %s для %s\n", bytes.String(), f.GetBytes().String(), actualIP)
 
 			if err != nil {
 				log.Println(err)
@@ -158,7 +158,7 @@ func (s *service) AutoSwitch(f *Filter) {
 			}
 			// если количество новых байтов не изменилось
 			if f.GetBytes().Cmp(bytes) == 0 && f.Cfg.AutoSwitch {
-				log.Println("Количество старых байтов меньше для", actualIP)
+				log.Println("Количество байтов равно для", actualIP)
 				tries++
 				if tries >= f.Cfg.Tries {
 					f.SetBytes(nil)
