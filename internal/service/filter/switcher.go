@@ -91,6 +91,7 @@ func (s *service) TurnOffAutoSwitch(f *Filter) {
 }
 
 func (s *service) configureFilters(db map[int]*Filter) {
+	time.Sleep(time.Second)
 	for _, data := range db {
 
 		// проверяем текущие фильтры
