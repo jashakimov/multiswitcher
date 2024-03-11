@@ -125,7 +125,6 @@ func (s *service) addBytes(f *Filter) {
 }
 
 func (s *service) AutoSwitch(f *Filter) {
-
 	var tries int
 	actualIP := f.GetActualIP()
 	defer fmt.Println("Завершили работы для", actualIP)
@@ -143,6 +142,7 @@ func (s *service) AutoSwitch(f *Filter) {
 			ip := filter.GetActualIP()
 			if _, ok := s.workersQueue[ip]; ok {
 				s.deleteIP(ip)
+				s.statManager.DelBytesByIP(actualIP)
 				return
 			}
 		case <-t.C:
