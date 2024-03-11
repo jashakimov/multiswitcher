@@ -142,6 +142,7 @@ func (s *service) AutoSwitch(f *Filter) {
 				return
 			}
 		case <-t.C:
+			log.Println("Работает воркер для", actualIP)
 			bytes, err := s.statManager.GetBytesByIP(actualIP)
 			//fmt.Printf("Получено %s, ,было %s для %s\n", bytes.String(), f.GetBytes().String(), actualIP)
 			if err != nil {
