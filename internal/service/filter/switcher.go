@@ -135,7 +135,7 @@ func (s *service) AutoSwitch(f *Filter) {
 
 			if err != nil {
 				log.Println(err)
-				return
+				continue
 			}
 			if f.GetBytes() == nil {
 				f.SetBytes(bytes)
