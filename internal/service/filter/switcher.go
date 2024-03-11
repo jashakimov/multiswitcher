@@ -107,7 +107,7 @@ func (s *service) configureFilters(db map[int]*Filter) {
 			data.IsMasterActual = true
 			s.Add(data.InterfaceName, data.Cfg.MasterPrio, data.MasterIP, data.DstIP)
 		}
-		go s.addBytes(data)
+		//go s.addBytes(data)
 		go s.AutoSwitch(data)
 	}
 }
@@ -155,6 +155,7 @@ func (s *service) AutoSwitch(f *Filter) {
 			}
 			// если количество новых байтов не изменилось
 			if f.GetBytes().Cmp(bytes) == -1 && f.Cfg.AutoSwitch {
+				log.Println("Количество старых байтов меньше")
 				tries++
 				if tries >= f.Cfg.Tries {
 					f.SetBytes(nil)
