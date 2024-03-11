@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"fmt"
 	"github.com/jashakimov/multiswitcher/internal/service/statistic"
 	"log"
 	"os/exec"
@@ -146,8 +145,7 @@ func (s *service) AutoSwitch(f *Filter) {
 			}
 		case <-t.C:
 			bytes, err := s.statManager.GetBytesByIP(actualIP)
-			fmt.Printf("Получено %s, ,было %s для %s\n", bytes.String(), f.GetBytes().String(), actualIP)
-
+			//fmt.Printf("Получено %s, ,было %s для %s\n", bytes.String(), f.GetBytes().String(), actualIP)
 			if err != nil {
 				log.Println(err)
 				continue

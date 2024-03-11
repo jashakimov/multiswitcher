@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"log"
 	"math/big"
 	"sync"
 )
@@ -30,11 +31,16 @@ var mu sync.Mutex
 func (f *Filter) SetBytes(val *big.Int) {
 	mu.Lock()
 	defer mu.Unlock()
+	var ip string
+
 	if f.IsMasterActual {
 		f.MasterBytes = val
+		ip = f.MasterIP
 	} else {
 		f.SlaveBytes = val
+		ip = f.SlaveIP
 	}
+	log.Printf("Новое значение для %s, %s", ip, val.String())
 }
 
 func (f *Filter) GetBytes() *big.Int {
