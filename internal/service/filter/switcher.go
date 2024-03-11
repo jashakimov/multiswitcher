@@ -116,6 +116,7 @@ func (s *service) AutoSwitch(f *Filter) {
 	var tries int
 	actualIP := f.GetActualIP()
 	if _, ok := s.workersQueue[actualIP]; ok {
+		log.Printf("IP %s уже есть в очереди, выходим", actualIP)
 		return
 	}
 
@@ -154,8 +155,8 @@ func (s *service) AutoSwitch(f *Filter) {
 				}
 			} else {
 				tries = 0
-				f.SetBytes(bytes)
 			}
+			f.SetBytes(bytes)
 		}
 	}
 }
