@@ -107,8 +107,20 @@ func (s *service) configureFilters(db map[int]*Filter) {
 			data.IsMasterActual = true
 			s.Add(data.InterfaceName, data.Cfg.MasterPrio, data.MasterIP, data.DstIP)
 		}
-
+		go s.addBytes(data)
 		go s.AutoSwitch(data)
+	}
+}
+
+func (s *service) addBytes(f *Filter) {
+	t := time.NewTicker(time.Duration(f.Cfg.MsToSwitch) * time.Millisecond)
+	for range t.C {
+		actualIP := f.GetActualIP()
+		bytes, err := s.statManager.GetBytesByIP(actualIP)
+		if err != nil {
+			continue
+		}
+		f.SetBytes(bytes)
 	}
 }
 
@@ -139,7 +151,6 @@ func (s *service) AutoSwitch(f *Filter) {
 				continue
 			}
 			if f.GetBytes() == nil {
-				f.SetBytes(bytes)
 				continue
 			}
 			// если количество новых байтов не изменилось
@@ -156,7 +167,6 @@ func (s *service) AutoSwitch(f *Filter) {
 			} else {
 				tries = 0
 			}
-			f.SetBytes(bytes)
 		}
 	}
 }
