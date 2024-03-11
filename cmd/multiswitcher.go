@@ -30,9 +30,9 @@ func main() {
 	statManager := statistic.NewService(link.Attrs().Name, cfg.StatFrequencySec)
 	filterManager := filter.NewService(statManager, db)
 
+	gin.SetMode(gin.ReleaseMode)
 	server := gin.New()
 	server.Use(gin.Recovery(), gin.Logger())
-	gin.SetMode(gin.ReleaseMode)
 	api.RegisterAPI(server, db, statManager, filterManager)
 
 	go func() {
