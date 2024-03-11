@@ -75,7 +75,7 @@ func (s *service) deleteIP(ip string) {
 	var lock sync.Mutex
 	lock.Lock()
 	defer lock.Unlock()
-
+	log.Println("Удаляем из очереди", ip)
 	delete(s.workersQueue, ip)
 }
 
@@ -106,7 +106,7 @@ func (s *service) configureFilters(db map[int]*Filter) {
 			data.IsMasterActual = true
 			s.Add(data.InterfaceName, data.Cfg.MasterPrio, data.MasterIP, data.DstIP)
 		}
-		go s.addBytes(data)
+		//go s.addBytes(data)
 		go s.AutoSwitch(data)
 	}
 }
@@ -139,7 +139,6 @@ func (s *service) AutoSwitch(f *Filter) {
 		case filter := <-s.turnOff:
 			ip := filter.GetActualIP()
 			if _, ok := s.workersQueue[ip]; ok {
-				log.Println("Удаляем из очереди", ip)
 				s.deleteIP(ip)
 				return
 			}
