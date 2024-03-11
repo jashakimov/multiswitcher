@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func RegisterAPI(
@@ -73,6 +74,7 @@ func (s *service) switchFilter(ctx *gin.Context) {
 	s.filterService.TurnOffAutoSwitch(filterInfo)
 	s.filterService.ChangeFilter(filterInfo)
 	filterInfo.IsMasterActual = !filterInfo.IsMasterActual
+	time.Sleep(time.Duration(filterInfo.Cfg.MsToSwitch) * time.Millisecond)
 	go s.filterService.AutoSwitch(filterInfo)
 
 	ctx.JSON(http.StatusOK, filterInfo)

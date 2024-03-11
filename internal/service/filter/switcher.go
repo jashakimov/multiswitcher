@@ -122,7 +122,7 @@ func (s *service) AutoSwitch(f *Filter) {
 
 	s.addIP(actualIP)
 
-	t := time.NewTicker(time.Duration(f.Cfg.SecToSwitch) * time.Millisecond)
+	t := time.NewTicker(time.Duration(f.Cfg.MsToSwitch) * time.Millisecond)
 	for {
 		select {
 		case filter := <-s.turnOff:

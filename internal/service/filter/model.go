@@ -3,11 +3,11 @@ package filter
 import "math/big"
 
 type Cfg struct {
-	Tries       int  `json:"tries"`
-	SecToSwitch int  `json:"msToSwitch"`
-	MasterPrio  int  `json:"-"`
-	SlavePrio   int  `json:"-"`
-	AutoSwitch  bool `json:"autoSwitch"`
+	Tries      int  `json:"tries"`
+	MsToSwitch int  `json:"msToSwitch"`
+	MasterPrio int  `json:"-"`
+	SlavePrio  int  `json:"-"`
+	AutoSwitch bool `json:"autoSwitch"`
 }
 
 type Filter struct {
