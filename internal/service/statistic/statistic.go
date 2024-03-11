@@ -24,7 +24,7 @@ func NewService(linkName string, timeoutMs int) Service {
 		cache:         utils.NewSyncMap[string, *big.Int](),
 	}
 
-	go s.readStats(timeoutMs)
+	go s.readStats(int(float64(timeoutMs) / 1.8))
 	time.Sleep(time.Second)
 
 	return s
