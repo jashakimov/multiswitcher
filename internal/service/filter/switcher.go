@@ -21,7 +21,6 @@ type Service interface {
 type service struct {
 	workersQueue map[string]struct{}
 	turnOff      chan *Filter
-	turnOn       chan *Filter
 	statManager  statistic.Service
 }
 
@@ -107,7 +106,7 @@ func (s *service) configureFilters(db map[int]*Filter) {
 			data.IsMasterActual = true
 			s.Add(data.InterfaceName, data.Cfg.MasterPrio, data.MasterIP, data.DstIP)
 		}
-		//go s.addBytes(data)
+		go s.addBytes(data)
 		go s.AutoSwitch(data)
 	}
 }
@@ -163,6 +162,7 @@ func (s *service) AutoSwitch(f *Filter) {
 					f.SetBytes(nil)
 					s.ChangeFilter(f)
 					f.IsMasterActual = !f.IsMasterActual
+					s.statManager.DelBytesByIP(actualIP)
 					s.deleteIP(actualIP)
 					go s.AutoSwitch(f)
 					return
@@ -195,4 +195,5 @@ func (s *service) ChangeFilter(f *Filter) {
 
 	s.Del(f.InterfaceName, actualPrio, actualIP, f.DstIP)
 	s.Add(f.InterfaceName, newPrio, newIP, f.DstIP)
+	time.Sleep(250 * time.Millisecond)
 }

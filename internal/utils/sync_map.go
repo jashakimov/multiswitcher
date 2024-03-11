@@ -36,3 +36,9 @@ func (m *SyncMap[K, V]) Values() map[K]V {
 
 	return m.items
 }
+
+func (m *SyncMap[K, V]) Del(ip K) {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+	delete(m.items, ip)
+}

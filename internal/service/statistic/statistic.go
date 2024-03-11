@@ -11,6 +11,7 @@ import (
 
 type Service interface {
 	GetBytesByIP(ip string) (*big.Int, error)
+	DelBytesByIP(ip string)
 }
 
 type service struct {
@@ -35,6 +36,10 @@ func (s *service) GetBytesByIP(ip string) (*big.Int, error) {
 		return bytes, nil
 	}
 	return nil, errors.Newf("Uknown IP: %s\n", ip)
+}
+
+func (s *service) DelBytesByIP(ip string) {
+	s.cache.Del(ip)
 }
 
 func (s *service) readStats(timeoutMs int) {
