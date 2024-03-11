@@ -23,7 +23,7 @@ func Configure(link netlink.Link, cfg *config.Config) {
 		panic(err)
 	}
 
-	log.Printf("Установка qdisc на интерфейс: %s\n", cfg.Interface)
+	log.Printf("Установка qdisc на интерфейс: %s", cfg.Interface)
 	// установка дисциплины, для последующей установки фильтров
 	if err := SetIngressQDisc(link); err != nil {
 		fmt.Println(err)

@@ -26,7 +26,6 @@ func NewService(linkName string, timeoutMs int) Service {
 	}
 
 	go s.readStats(250)
-	time.Sleep(time.Second)
 
 	return s
 }

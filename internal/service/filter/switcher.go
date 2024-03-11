@@ -93,7 +93,6 @@ func (s *service) configureFilters(db map[int]*Filter) {
 	for _, data := range db {
 
 		// проверяем текущие фильтры
-		time.Sleep(time.Second)
 		isMaster, isSlave := s.IsExistFilters(data)
 
 		switch {

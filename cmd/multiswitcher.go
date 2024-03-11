@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	_ "github.com/google/gopacket/layers"
 	"github.com/jashakimov/multiswitcher/internal/api"
@@ -32,8 +31,8 @@ func main() {
 	filterManager := filter.NewService(statManager, db)
 
 	server := gin.New()
-	gin.SetMode(gin.ReleaseMode)
 	server.Use(gin.Recovery(), gin.Logger())
+	gin.SetMode(gin.ReleaseMode)
 	api.RegisterAPI(server, db, statManager, filterManager)
 
 	go func() {
@@ -53,7 +52,6 @@ func MakeLocalDB(cfg *config.Config) map[int]*filter.Filter {
 	slave := len(cfg.Filters) + 2
 
 	info := make(map[int]*filter.Filter)
-	fmt.Println(len(cfg.Filters))
 	for i, f := range cfg.Filters {
 		master++
 		slave++
