@@ -127,45 +127,34 @@ func (s *service) AutoSwitch(f *Filter) {
 	var tries int
 
 	t := time.NewTicker(time.Duration(f.Cfg.MsToSwitch) * time.Millisecond)
-	for {
-		select {
-		case filter := <-s.turnOff:
-			ip := filter.GetActualIP()
-			if _, ok := s.workersQueue[ip]; ok {
-				s.statManager.DelBytesByIP(f.GetActualIP())
+	for range t.C {
+		actualIP := f.GetActualIP()
+		bytes, err := s.statManager.GetBytesByIP(actualIP)
+
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		if f.GetBytes() == nil {
+			f.SetBytes(bytes)
+			continue
+		}
+		// если количество новых байтов не изменилось
+		if f.GetBytes().Cmp(bytes) == 0 && f.Cfg.AutoSwitch {
+			tries++
+			if tries >= f.Cfg.Tries {
+				f.SetBytes(nil)
+				s.ChangeFilter(f)
+				f.IsMasterActual = !f.IsMasterActual
+				s.statManager.DelBytesByIP(actualIP)
+				s.deleteIP(actualIP)
+				go s.AutoSwitch(f)
 				return
 			}
-		case <-t.C:
-			actualIP := f.GetActualIP()
-			log.Println("Работает воркер для", actualIP)
-			bytes, err := s.statManager.GetBytesByIP(actualIP)
-			//fmt.Printf("Получено %s, ,было %s для %s\n", bytes.String(), f.GetBytes().String(), actualIP)
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-			if f.GetBytes() == nil {
-				f.SetBytes(bytes)
-				continue
-			}
-			// если количество новых байтов не изменилось
-			if f.GetBytes().Cmp(bytes) == 0 && f.Cfg.AutoSwitch {
-				log.Println("Количество байтов равно для", actualIP)
-				tries++
-				if tries >= f.Cfg.Tries {
-					f.SetBytes(nil)
-					s.ChangeFilter(f)
-					f.IsMasterActual = !f.IsMasterActual
-					s.statManager.DelBytesByIP(actualIP)
-					s.deleteIP(actualIP)
-					go s.AutoSwitch(f)
-					return
-				}
-			} else {
-				tries = 0
-			}
-			f.SetBytes(bytes)
+		} else {
+			tries = 0
 		}
+		f.SetBytes(bytes)
 	}
 }
 

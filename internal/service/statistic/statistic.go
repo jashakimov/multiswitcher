@@ -1,7 +1,6 @@
 package statistic
 
 import (
-	"fmt"
 	"github.com/jashakimov/multiswitcher/internal/utils"
 	"gopkg.in/errgo.v2/fmt/errors"
 	"math/big"
@@ -26,15 +25,8 @@ func NewService(linkName string, timeoutMs int) Service {
 		cache:         utils.NewSyncMap[string, *big.Int](),
 	}
 
-	go s.readStats(250)
-	go func() {
-		for {
-			time.Sleep(5 * time.Second)
-			for a, i := range s.cache.Values() {
-				fmt.Printf("IP %s = %s\n", a, i.String())
-			}
-		}
-	}()
+	go s.readStats(timeoutMs)
+	time.Sleep(time.Second)
 
 	return s
 }
