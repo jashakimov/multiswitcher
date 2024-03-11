@@ -5,6 +5,7 @@ import (
 	"github.com/jashakimov/multiswitcher/internal/service/filter"
 	"github.com/jashakimov/multiswitcher/internal/service/statistic"
 	"github.com/jashakimov/multiswitcher/internal/utils"
+	"log"
 	"net/http"
 	"sort"
 	"strconv"
@@ -70,7 +71,8 @@ func (s *service) switchFilter(ctx *gin.Context) {
 		return
 	}
 
-	s.filterService.TurnOffAutoSwitch(filterInfo)
+	go s.filterService.TurnOffAutoSwitch(filterInfo)
+	log.Println("меняем для", filterInfo)
 	s.filterService.ChangeFilter(filterInfo)
 	filterInfo.IsMasterActual = !filterInfo.IsMasterActual
 	go s.filterService.AutoSwitch(filterInfo)
