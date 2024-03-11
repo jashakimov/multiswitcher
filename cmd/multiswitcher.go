@@ -49,8 +49,8 @@ func main() {
 }
 
 func MakeLocalDB(cfg *config.Config) map[int]*filter.Filter {
-	master := 1
-	slave := len(cfg.Filters) + 1
+	master := 0
+	slave := len(cfg.Filters) + 2
 
 	info := make(map[int]*filter.Filter)
 	fmt.Println(len(cfg.Filters))

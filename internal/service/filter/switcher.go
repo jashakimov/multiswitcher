@@ -140,6 +140,7 @@ func (s *service) AutoSwitch(f *Filter) {
 		case filter := <-s.turnOff:
 			ip := filter.GetActualIP()
 			if _, ok := s.workersQueue[ip]; ok {
+				log.Println("Удаляем из очереди", ip)
 				s.deleteIP(ip)
 				return
 			}
