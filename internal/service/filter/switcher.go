@@ -154,7 +154,7 @@ func (s *service) AutoSwitch(f *Filter) {
 				continue
 			}
 			// если количество новых байтов не изменилось
-			if f.GetBytes().Cmp(bytes) == 0 && f.Cfg.AutoSwitch {
+			if f.GetBytes().Cmp(bytes) == -1 && f.Cfg.AutoSwitch {
 				tries++
 				if tries >= f.Cfg.Tries {
 					f.SetBytes(nil)
