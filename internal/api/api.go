@@ -70,10 +70,8 @@ func (s *service) switchFilter(ctx *gin.Context) {
 		return
 	}
 
-	go s.filterService.TurnOffAutoSwitch(filterInfo)
 	s.filterService.ChangeFilter(filterInfo)
 	filterInfo.IsMasterActual = !filterInfo.IsMasterActual
-	go s.filterService.AutoSwitch(filterInfo)
 
 	ctx.JSON(http.StatusOK, filterInfo)
 }

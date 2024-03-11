@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"fmt"
 	"github.com/jashakimov/multiswitcher/internal/service/statistic"
 	"log"
 	"os/exec"
@@ -127,7 +126,7 @@ func (s *service) addBytes(f *Filter) {
 func (s *service) AutoSwitch(f *Filter) {
 	var tries int
 	actualIP := f.GetActualIP()
-	defer fmt.Println("Завершили работы для", actualIP)
+
 	if _, ok := s.workersQueue[actualIP]; ok {
 		log.Printf("IP %s уже есть в очереди, выходим", actualIP)
 		return
