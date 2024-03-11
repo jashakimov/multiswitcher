@@ -151,6 +151,7 @@ func (s *service) AutoSwitch(f *Filter) {
 				continue
 			}
 			if f.GetBytes() == nil {
+				f.SetBytes(bytes)
 				continue
 			}
 			// если количество новых байтов не изменилось
