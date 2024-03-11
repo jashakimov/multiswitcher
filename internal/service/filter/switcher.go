@@ -125,14 +125,6 @@ func (s *service) addBytes(f *Filter) {
 
 func (s *service) AutoSwitch(f *Filter) {
 	var tries int
-	actualIP := f.GetActualIP()
-
-	if _, ok := s.workersQueue[actualIP]; ok {
-		log.Printf("IP %s уже есть в очереди, выходим", actualIP)
-		return
-	}
-
-	s.addIP(actualIP)
 
 	t := time.NewTicker(time.Duration(f.Cfg.MsToSwitch) * time.Millisecond)
 	for {
@@ -140,11 +132,11 @@ func (s *service) AutoSwitch(f *Filter) {
 		case filter := <-s.turnOff:
 			ip := filter.GetActualIP()
 			if _, ok := s.workersQueue[ip]; ok {
-				s.deleteIP(ip)
-				s.statManager.DelBytesByIP(actualIP)
+				s.statManager.DelBytesByIP(f.GetActualIP())
 				return
 			}
 		case <-t.C:
+			actualIP := f.GetActualIP()
 			log.Println("Работает воркер для", actualIP)
 			bytes, err := s.statManager.GetBytesByIP(actualIP)
 			//fmt.Printf("Получено %s, ,было %s для %s\n", bytes.String(), f.GetBytes().String(), actualIP)
