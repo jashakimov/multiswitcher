@@ -155,8 +155,8 @@ func (s *service) AutoSwitch(f *Filter) {
 				continue
 			}
 			// если количество новых байтов не изменилось
-			if f.GetBytes().Cmp(bytes) == -1 && f.Cfg.AutoSwitch {
-				log.Println("Количество старых байтов меньше")
+			if f.GetBytes().Cmp(bytes) == 0 && f.Cfg.AutoSwitch {
+				log.Println("Количество старых байтов меньше для", actualIP)
 				tries++
 				if tries >= f.Cfg.Tries {
 					f.SetBytes(nil)
