@@ -48,13 +48,9 @@ func main() {
 }
 
 func MakeLocalDB(cfg *config.Config) map[int]*filter.Filter {
-	master := 0
-	slave := len(cfg.Filters) + 2
-
 	info := make(map[int]*filter.Filter)
 	for i, f := range cfg.Filters {
-		master++
-		slave++
+
 		info[i+1] = &filter.Filter{
 			Id:            i + 1,
 			InterfaceName: cfg.Interface,
@@ -65,8 +61,8 @@ func MakeLocalDB(cfg *config.Config) map[int]*filter.Filter {
 			Cfg: filter.Cfg{
 				Tries:      f.SwitchTries,
 				MsToSwitch: cfg.StatFrequencySec,
-				MasterPrio: master,
-				SlavePrio:  slave,
+				MasterPrio: i + 1,
+				SlavePrio:  i + 1,
 				AutoSwitch: f.AutoSwitch,
 			},
 		}
