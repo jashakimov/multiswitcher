@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Interface        string   `json:"interface"`
 	Port             string   `json:"port"`
+	CopyTrafficFrom  string   `json:"copyTrafficFrom"`
 	StatFrequencySec int      `json:"statsFrequencyMs"`
 	Filters          []Filter `json:"filters"`
 }

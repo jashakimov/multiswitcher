@@ -3,11 +3,14 @@ package interface_link
 import (
 	"fmt"
 	"github.com/jashakimov/multiswitcher/internal/config"
+	"github.com/jashakimov/multiswitcher/internal/service/filter"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netlink/nl"
 	"golang.org/x/sys/unix"
 	"log"
 	"net"
+	"os/exec"
+	"strconv"
 )
 
 func Configure(link netlink.Link, cfg *config.Config) {
@@ -86,4 +89,17 @@ func LinkSetMulticast(lnk netlink.Link) error {
 	_, err := req.Execute(unix.NETLINK_ROUTE, 0)
 
 	return err
+}
+
+func MirrorTraffic(from, to netlink.Link, ips map[int]*filter.Filter) {
+	for _, ip := range ips {
+		cmdMaster := exec.Command("tc", "filter", "add", "dev",
+			from.Attrs().Name, "parent", "ffff:", "protocol", "ip", "prio", strconv.Itoa(ip.Cfg.MasterPrio), "u32",
+			"match", "ip", "dst", ip.MasterIP+"/32", "action", "mirred", "egress", "mirror", "dev", to.Attrs().Name)
+		cmdMaster.CombinedOutput()
+		cmdSlave := exec.Command("tc", "filter", "add", "dev",
+			from.Attrs().Name, "parent", "ffff:", "protocol", "ip", "prio", strconv.Itoa(ip.Cfg.SlavePrio), "u32",
+			"match", "ip", "dst", ip.SlaveIP+"/32", "action", "mirred", "egress", "mirror", "dev", to.Attrs().Name)
+		cmdSlave.CombinedOutput()
+	}
 }

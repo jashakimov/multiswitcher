@@ -1,5 +1,6 @@
 {
     "interface": "lo",
+    "copyTrafficFrom": "bond0",
     "port": "9000",
     "statsFrequencyMs": 1200,
     "filters": [
