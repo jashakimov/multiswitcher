@@ -16,15 +16,12 @@ import (
 	"syscall"
 )
 
+var Version string
+
 func main() {
 	fileConfig := utils.ParseFlags()
 	cfg := config.NewConfig(fileConfig)
-
-	appVer, ok := os.LookupEnv("APP_VERSION")
-	if !ok {
-		panic("Не найдена APP_VERSION")
-	}
-	log.Println("Версия приложения:", appVer)
+	log.Println("Версия приложения:", Version)
 
 	link, err := netlink.LinkByName(cfg.Interface)
 	if err != nil {
@@ -36,6 +33,7 @@ func main() {
 	}
 
 	db := MakeLocalDB(cfg)
+	interface_link.SetIngressQDisc(copyFrom)
 	interface_link.MirrorTraffic(copyFrom, link, db)
 	interface_link.Configure(link, cfg)
 	statManager := statistic.NewService(link.Attrs().Name, cfg.StatFrequencySec)
