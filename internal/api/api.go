@@ -16,6 +16,7 @@ func RegisterAPI(
 	db map[int]*filter.Filter,
 	statService statistic.Service,
 	filterService filter.Service,
+	igmpService igmp.Service,
 ) {
 	s := &service{db: db, statService: statService, filterService: filterService}
 
@@ -23,6 +24,7 @@ func RegisterAPI(
 	server.GET("/stats/:id", s.getConfigByID)
 	server.PATCH("/auto-switch/:id/:val", s.setAutoSwitch)
 	server.PATCH("/switch/:id/:name", s.switchFilter)
+	server.PATCH("/igmp/:toggle", s.switchIgmp)
 }
 
 type service struct {
@@ -124,4 +126,18 @@ func (s *service) setAutoSwitch(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, filterInfo)
+}
+
+func (s *service) switchIgmp(ctx *gin.Context) {
+	var toogle bool
+	switch strings.ToLower(ctx.Param("toggle")) {
+	case "on":
+		toogle = true
+	case "off":
+		toogle = false
+	default:
+		ctx.JSON(http.StatusBadRequest, "Параметр только on или off")
+		return
+	}
+
 }
