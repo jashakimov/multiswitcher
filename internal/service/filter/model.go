@@ -20,6 +20,7 @@ type Filter struct {
 	SlaveIP        string   `json:"slaveIP"`
 	DstIP          string   `json:"dstIP"`
 	IsMasterActual bool     `json:"isMasterActual"`
+	IsIgmpOn       bool     `json:"IsIgmpOn"`
 	MasterBytes    *big.Int `json:"masterBytes"`
 	SlaveBytes     *big.Int `json:"slaveBytes"`
 	Cfg            Cfg      `json:"config"`
