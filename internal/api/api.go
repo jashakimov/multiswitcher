@@ -31,7 +31,7 @@ func RegisterAPI(
 	server.GET("/stats/:id", s.getConfigByID)
 	server.PATCH("/auto-switch/:id/:val", s.setAutoSwitch)
 	server.PATCH("/switch/:id/:name", s.switchFilter)
-	server.PATCH("/igmp/:toggle", s.turnOnIgmp)
+	server.PATCH("/igmp/all/:toggle", s.turnOnIgmp)
 	server.PATCH("/igmp/:id/:toggleId", s.turnOnIgmpById)
 }
 
