@@ -32,7 +32,7 @@ func RegisterAPI(
 	server.PATCH("/auto-switch/:id/:val", s.setAutoSwitch)
 	server.PATCH("/switch/:id/:name", s.switchFilter)
 	server.PATCH("/igmp/:toggle", s.turnOnIgmp)
-	server.PATCH("/igmp/:id/:toggle", s.turnOnIgmpById)
+	server.PATCH("/igmp/:id/:toggleId", s.turnOnIgmpById)
 }
 
 type service struct {
@@ -156,7 +156,7 @@ func (s *service) turnOnIgmpById(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, "id не число")
 		return
 	}
-	switch strings.ToLower(ctx.Param("toggle")) {
+	switch strings.ToLower(ctx.Param("toggleId")) {
 	case "on":
 		if err := s.igmpService.ToggleByID(ctx, id, igmp.JoinReport); err != nil {
 			ctx.JSON(http.StatusBadRequest, err.Error())
