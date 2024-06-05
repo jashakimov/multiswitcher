@@ -7,6 +7,7 @@ import (
 	"github.com/jashakimov/multiswitcher/internal/config"
 	"github.com/jashakimov/multiswitcher/internal/interface_link"
 	"github.com/jashakimov/multiswitcher/internal/service/filter"
+	"github.com/jashakimov/multiswitcher/internal/service/igmp"
 	"github.com/jashakimov/multiswitcher/internal/service/statistic"
 	"github.com/jashakimov/multiswitcher/internal/utils"
 	"github.com/vishvananda/netlink"
@@ -38,11 +39,12 @@ func main() {
 	interface_link.Configure(link, cfg)
 	statManager := statistic.NewService(link.Attrs().Name, cfg.StatFrequencySec)
 	filterManager := filter.NewService(statManager, db)
+	imgpService := igmp.NewService(db)
 
 	gin.SetMode(gin.ReleaseMode)
 	server := gin.New()
 	server.Use(gin.Recovery(), gin.Logger())
-	api.RegisterAPI(server, db, statManager, filterManager)
+	api.RegisterAPI(server, db, statManager, filterManager, imgpService)
 
 	go func() {
 		log.Println("Запущен сервер, порт", cfg.Port)
