@@ -9,7 +9,7 @@
             "route": "233.0.0.1",
             "switchTries": 3,
             "autoSwitch": true,
-            "title": "название связки",
+            "title": "РЅР°Р·РІР°РЅРёРµ СЃРІСЏР·РєРё",
             "master": {
                 "ip": "127.0.0.5",
                 "priority": 1
