@@ -205,10 +205,10 @@ func (s *service) ChangeFilter(f *Filter) {
 func (s *service) ReturnToMaster(info *Filter, toggleOn bool) {
 	// если false, то выключить возврат на мастер
 	if toggleOn {
-		s.Add(info.InterfaceName, info.Cfg.MasterPrio, info.MasterIP, info.DstIP)
+		s.Add(info.InterfaceName, info.Cfg.MasterPrio*100, info.MasterIP, info.DstIP)
 		info.IsReturnToMaster = true
 	} else {
-		s.Del(info.InterfaceName, info.Cfg.MasterPrio, info.MasterIP, info.DstIP)
+		s.Del(info.InterfaceName, info.Cfg.MasterPrio*100, info.MasterIP, info.DstIP)
 		info.IsReturnToMaster = false
 	}
 }
