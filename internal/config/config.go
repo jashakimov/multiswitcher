@@ -11,6 +11,7 @@ type Config struct {
 	Port             string   `json:"port"`
 	CopyTrafficFrom  string   `json:"copyTrafficFrom"`
 	StatFrequencySec int      `json:"statsFrequencyMs"`
+	Hostname         string   `json:"hostname"`
 	Filters          []Filter `json:"filters"`
 }
 
@@ -18,6 +19,7 @@ type Filter struct {
 	Route       string `json:"route,omitempty"`
 	SwitchTries int    `json:"switchTries,omitempty"`
 	AutoSwitch  bool   `json:"autoSwitch"`
+	Title       string `json:"title"`
 	Master      Info   `json:"master,omitempty"`
 	Slave       Info   `json:"slave,omitempty"`
 }
