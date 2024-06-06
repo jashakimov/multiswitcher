@@ -44,7 +44,7 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	server := gin.New()
 	server.Use(gin.Recovery(), gin.Logger())
-	api.RegisterAPI(server, db, statManager, filterManager, imgpService)
+	api.RegisterAPI(server, db, filterManager, imgpService)
 
 	go func() {
 		log.Println("Запущен сервер, порт", cfg.Port)
@@ -63,12 +63,18 @@ func MakeLocalDB(cfg *config.Config) map[int]*filter.Filter {
 	for i, f := range cfg.Filters {
 
 		info[i+1] = &filter.Filter{
-			Id:            i + 1,
-			InterfaceName: cfg.Interface,
-			MasterIP:      f.Master.IP,
-			SlaveIP:       f.Slave.IP,
-			DstIP:         f.Route,
-			MasterBytes:   nil,
+			Id:               i + 1,
+			InterfaceName:    cfg.Interface,
+			MasterIP:         f.Master.IP,
+			Hostname:         cfg.Hostname,
+			SlaveIP:          f.Slave.IP,
+			DstIP:            f.Route,
+			Title:            f.Title,
+			IsMasterActual:   false,
+			IsIgmpOn:         false,
+			IsReturnToMaster: false,
+			MasterBytes:      nil,
+			SlaveBytes:       nil,
 			Cfg: filter.Cfg{
 				Tries:      f.SwitchTries,
 				MsToSwitch: cfg.StatFrequencySec,

@@ -16,6 +16,7 @@ type Service interface {
 	AutoSwitch(f *Filter)
 	ChangeFilter(f *Filter)
 	TurnOffAutoSwitch(f *Filter)
+	ReturnToMaster(info *Filter, toggle bool)
 }
 
 type service struct {
@@ -139,6 +140,21 @@ func (s *service) AutoSwitch(f *Filter) {
 			f.SetBytes(bytes)
 			continue
 		}
+
+		// если включено автопереключение, возврат на мастер и актульный не мастер
+		if f.Cfg.AutoSwitch && f.IsReturnToMaster && !f.IsMasterActual {
+			masterBytes, _ := s.statManager.GetBytesByIP(f.MasterIP)
+			if masterBytes.Int64() > 0 {
+				// удаляем фильтр со слейва
+				s.Del(f.InterfaceName, f.Cfg.SlavePrio, f.SlaveIP, f.DstIP)
+				f.IsMasterActual = !f.IsMasterActual
+				s.statManager.DelBytesByIP(f.SlaveIP)
+				s.deleteIP(f.SlaveIP)
+				go s.AutoSwitch(f)
+				return
+			}
+		}
+
 		// если количество новых байтов не изменилось
 		if f.GetBytes().Cmp(bytes) == 0 && f.Cfg.AutoSwitch {
 			tries++
@@ -179,4 +195,15 @@ func (s *service) ChangeFilter(f *Filter) {
 	s.Del(f.InterfaceName, actualPrio, actualIP, f.DstIP)
 	s.Add(f.InterfaceName, newPrio, newIP, f.DstIP)
 	time.Sleep(250 * time.Millisecond)
+}
+
+func (s *service) ReturnToMaster(info *Filter, toggleOn bool) {
+	// если false, то выключить возврат на мастер
+	if toggleOn {
+		s.Add(info.InterfaceName, info.Cfg.MasterPrio, info.MasterIP, info.DstIP)
+		info.IsReturnToMaster = true
+	} else {
+		s.Del(info.InterfaceName, info.Cfg.MasterPrio, info.MasterIP, info.DstIP)
+		info.IsReturnToMaster = false
+	}
 }

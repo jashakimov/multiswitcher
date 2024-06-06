@@ -3,11 +3,13 @@
     "copyTrafficFrom": "bond0",
     "port": "9000",
     "statsFrequencyMs": 1200,
+    "hostname": "macbook",
     "filters": [
         {
             "route": "233.0.0.1",
             "switchTries": 3,
             "autoSwitch": true,
+            "title": "название связки",
             "master": {
                 "ip": "127.0.0.5",
                 "priority": 1

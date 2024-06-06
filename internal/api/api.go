@@ -5,7 +5,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jashakimov/multiswitcher/internal/service/filter"
 	"github.com/jashakimov/multiswitcher/internal/service/igmp"
-	"github.com/jashakimov/multiswitcher/internal/service/statistic"
 	"github.com/jashakimov/multiswitcher/internal/utils"
 	"net/http"
 	"sort"
@@ -16,13 +15,11 @@ import (
 func RegisterAPI(
 	server *gin.Engine,
 	db map[int]*filter.Filter,
-	statService statistic.Service,
 	filterService filter.Service,
 	igmpService igmp.Service,
 ) {
 	s := &service{
 		db:            db,
-		statService:   statService,
 		filterService: filterService,
 		igmpService:   igmpService,
 	}
@@ -33,11 +30,11 @@ func RegisterAPI(
 	server.PATCH("/switch/:id/:name", s.switchFilter)
 	server.PATCH("/igmp/all/:toggle", s.turnOnIgmp)
 	server.PATCH("/igmp/:id/:toggleId", s.turnOnIgmpById)
+	server.PATCH("/return-master/:id/:toggle", s.returnToMaster)
 }
 
 type service struct {
 	db            map[int]*filter.Filter
-	statService   statistic.Service
 	filterService filter.Service
 	igmpService   igmp.Service
 }
@@ -172,4 +169,40 @@ func (s *service) turnOnIgmpById(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, fmt.Sprintf("IGMP включен для %d", id))
+}
+
+func (s *service) returnToMaster(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, "id не число")
+		return
+	}
+	filterInfo, ok := s.db[id]
+	if !ok {
+		ctx.JSON(http.StatusNotFound, "Не найден")
+		return
+	}
+
+	var toggle bool
+	switch strings.ToLower(ctx.Param("toggle")) {
+	case "on":
+		if filterInfo.IsReturnToMaster {
+			ctx.JSON(http.StatusBadRequest, "Параметр уже включен")
+			return
+		}
+		toggle = true
+	case "off":
+		if !filterInfo.IsReturnToMaster {
+			ctx.JSON(http.StatusBadRequest, "Параметр уже выключен")
+			return
+		}
+		toggle = false
+	default:
+		ctx.JSON(http.StatusBadRequest, "Параметр только on или off")
+		return
+	}
+
+	s.filterService.ReturnToMaster(filterInfo, toggle)
+
+	ctx.JSON(http.StatusOK, fmt.Sprint("Включен режим возврат на мастер"))
 }
