@@ -196,7 +196,7 @@ func (s *service) ChangeFilter(f *Filter) {
 func (s *service) ReturnToMaster(info *Filter, toggleOn bool) {
 	// если false, то выключить возврат на мастер
 	if toggleOn {
-		fmt.Printf("Для %s Включаем принудительный возврат на мастер\n")
+		fmt.Printf("Для %s Включаем принудительный возврат на мастер\n", info.MasterIP)
 		info.IsReturnToMaster = true
 		receiveChan, ok := s.returnToMasterChannels[info.MasterIP]
 		if !ok {
@@ -207,7 +207,7 @@ func (s *service) ReturnToMaster(info *Filter, toggleOn bool) {
 			ReceiveChan: receiveChan,
 		})
 	} else {
-		fmt.Printf("Для %s отключаем принудительный возврат на мастер\n")
+		fmt.Printf("Для %s отключаем принудительный возврат на мастер\n", info.MasterIP)
 		s.listener.Stop(info.MasterIP)
 		info.IsReturnToMaster = false
 	}
