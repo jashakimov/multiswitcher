@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"fmt"
 	"github.com/jashakimov/multiswitcher/internal/service/net_listener"
 	"github.com/jashakimov/multiswitcher/internal/service/statistic"
 	"log"
@@ -195,6 +196,7 @@ func (s *service) ChangeFilter(f *Filter) {
 func (s *service) ReturnToMaster(info *Filter, toggleOn bool) {
 	// если false, то выключить возврат на мастер
 	if toggleOn {
+		fmt.Printf("Для %s Включаем принудительный возврат на мастер\n")
 		info.IsReturnToMaster = true
 		receiveChan, ok := s.returnToMasterChannels[info.MasterIP]
 		if !ok {
@@ -205,6 +207,7 @@ func (s *service) ReturnToMaster(info *Filter, toggleOn bool) {
 			ReceiveChan: receiveChan,
 		})
 	} else {
+		fmt.Printf("Для %s отключаем принудительный возврат на мастер\n")
 		s.listener.Stop(info.MasterIP)
 		info.IsReturnToMaster = false
 	}
@@ -216,6 +219,7 @@ func (s *service) returnToMasterListener() {
 			for filterId := range c {
 				if fil, ok := s.db[filterId]; ok {
 					if !fil.IsMasterActual {
+						fmt.Printf("Восстановился поток - возвращаем на мастер")
 						s.ChangeFilter(fil)
 						fil.IsMasterActual = !fil.IsMasterActual
 					}
