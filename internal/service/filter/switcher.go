@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"fmt"
 	"github.com/jashakimov/multiswitcher/internal/service/net_listener"
 	"github.com/jashakimov/multiswitcher/internal/service/statistic"
 	"log"
@@ -145,24 +144,6 @@ func (s *service) AutoSwitch(f *Filter) {
 			f.SetBytes(bytes)
 			continue
 		}
-
-		// если включено автопереключение, возврат на мастер и актульный не мастер
-		if f.Cfg.AutoSwitch && f.IsReturnToMaster && !f.IsMasterActual {
-			masterBytes, err := s.statManager.GetBytesByIP(f.MasterIP)
-			fmt.Println("мастер поток байтов", masterBytes.String())
-			if err == nil {
-				if masterBytes.Int64() > 0 {
-					// удаляем фильтр со слейва
-					s.Del(f.InterfaceName, f.Cfg.SlavePrio, f.SlaveIP, f.DstIP)
-					f.IsMasterActual = !f.IsMasterActual
-					s.statManager.DelBytesByIP(f.SlaveIP)
-					s.deleteIP(f.SlaveIP)
-					go s.AutoSwitch(f)
-					return
-				}
-			}
-		}
-
 		// если количество новых байтов не изменилось
 		if f.GetBytes().Cmp(bytes) == 0 && f.Cfg.AutoSwitch {
 			tries++
