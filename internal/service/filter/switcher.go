@@ -31,11 +31,12 @@ type service struct {
 
 func NewService(statManager statistic.Service, db map[int]*Filter, listener net_listener.Listener) Service {
 	s := &service{
-		turnOff:      make(chan *Filter),
-		statManager:  statManager,
-		workersQueue: make(map[string]struct{}),
-		listener:     listener,
-		db:           db,
+		turnOff:                make(chan *Filter),
+		statManager:            statManager,
+		workersQueue:           make(map[string]struct{}),
+		listener:               listener,
+		db:                     db,
+		returnToMasterChannels: map[string]chan int{},
 	}
 	s.configureFilters(db)
 	s.returnToMasterListener()
