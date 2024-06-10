@@ -187,18 +187,18 @@ func (s *service) returnToMaster(ctx *gin.Context) {
 	switch strings.ToLower(ctx.Param("toggle")) {
 	case "on":
 		if filterInfo.IsReturnToMaster {
-			ctx.JSON(http.StatusBadRequest, "Параметр уже включен")
+			ctx.String(http.StatusBadRequest, "Параметр уже включен\n")
 			return
 		}
 		toggle = true
 	case "off":
 		if !filterInfo.IsReturnToMaster {
-			ctx.JSON(http.StatusBadRequest, "Параметр уже выключен")
+			ctx.String(http.StatusBadRequest, "Параметр уже выключен\n")
 			return
 		}
 		toggle = false
 	default:
-		ctx.JSON(http.StatusBadRequest, "Параметр только on или off")
+		ctx.String(http.StatusBadRequest, "Параметр только on или off\n")
 		return
 	}
 
