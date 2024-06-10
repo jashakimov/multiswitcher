@@ -204,5 +204,5 @@ func (s *service) returnToMaster(ctx *gin.Context) {
 
 	s.filterService.ReturnToMaster(filterInfo, toggle)
 
-	ctx.String(http.StatusOK, fmt.Sprint("Включен режим возврат на мастер\n"))
+	ctx.String(http.StatusOK, fmt.Sprintf("Режим возврат на мастер: %v\n", toggle))
 }
