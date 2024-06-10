@@ -2,6 +2,7 @@ package filter
 
 import (
 	"fmt"
+	"github.com/jashakimov/multiswitcher/internal/service/net_listener"
 	"github.com/jashakimov/multiswitcher/internal/service/statistic"
 	"log"
 	"os/exec"
@@ -24,13 +25,15 @@ type service struct {
 	workersQueue map[string]struct{}
 	turnOff      chan *Filter
 	statManager  statistic.Service
+	listener     net_listener.Listener
 }
 
-func NewService(statManager statistic.Service, db map[int]*Filter) Service {
+func NewService(statManager statistic.Service, db map[int]*Filter, listener net_listener.Listener) Service {
 	s := &service{
 		turnOff:      make(chan *Filter),
 		statManager:  statManager,
 		workersQueue: make(map[string]struct{}),
+		listener:     listener,
 	}
 	s.configureFilters(db)
 
@@ -205,10 +208,16 @@ func (s *service) ChangeFilter(f *Filter) {
 func (s *service) ReturnToMaster(info *Filter, toggleOn bool) {
 	// если false, то выключить возврат на мастер
 	if toggleOn {
-		s.Add(info.InterfaceName, info.Cfg.MasterPrio*100, info.MasterIP, info.DstIP)
+		go func() {
+			ch := make(chan struct{})
+			s.listener.Receive(info.MasterIP, ch)
+			<-ch
+			s.ChangeFilter(info)
+			info.IsMasterActual = !info.IsMasterActual
+		}()
 		info.IsReturnToMaster = true
 	} else {
-		s.Del(info.InterfaceName, info.Cfg.MasterPrio*100, info.MasterIP, info.DstIP)
+		s.listener.Stop(info.MasterIP)
 		info.IsReturnToMaster = false
 	}
 }
