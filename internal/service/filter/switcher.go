@@ -21,10 +21,12 @@ type Service interface {
 }
 
 type service struct {
-	workersQueue map[string]struct{}
-	turnOff      chan *Filter
-	statManager  statistic.Service
-	listener     net_listener.Listener
+	workersQueue           map[string]struct{}
+	turnOff                chan *Filter
+	statManager            statistic.Service
+	listener               net_listener.Listener
+	db                     map[int]*Filter
+	returnToMasterChannels map[string]chan int
 }
 
 func NewService(statManager statistic.Service, db map[int]*Filter, listener net_listener.Listener) Service {
@@ -33,8 +35,10 @@ func NewService(statManager statistic.Service, db map[int]*Filter, listener net_
 		statManager:  statManager,
 		workersQueue: make(map[string]struct{}),
 		listener:     listener,
+		db:           db,
 	}
 	s.configureFilters(db)
+	s.returnToMasterListener()
 
 	return s
 }
@@ -96,7 +100,6 @@ func (s *service) TurnOffAutoSwitch(f *Filter) {
 func (s *service) configureFilters(db map[int]*Filter) {
 	time.Sleep(time.Second * 2)
 	for _, data := range db {
-
 		// проверяем текущие фильтры
 		isMaster, isSlave := s.IsExistFilters(data)
 		log.Println("Exist filters", isMaster, isSlave)
@@ -111,8 +114,10 @@ func (s *service) configureFilters(db map[int]*Filter) {
 			data.IsMasterActual = true
 			s.Add(data.InterfaceName, data.Cfg.MasterPrio, data.MasterIP, data.DstIP)
 		}
-		//go s.addBytes(data)
 		go s.AutoSwitch(data)
+
+		//инициализация каналов для прослушки мастер ip
+		s.returnToMasterChannels[data.MasterIP] = make(chan int)
 	}
 }
 
@@ -189,16 +194,32 @@ func (s *service) ChangeFilter(f *Filter) {
 func (s *service) ReturnToMaster(info *Filter, toggleOn bool) {
 	// если false, то выключить возврат на мастер
 	if toggleOn {
-		go func() {
-			ch := make(chan struct{})
-			s.listener.Receive(info.MasterIP, ch)
-			<-ch
-			s.ChangeFilter(info)
-			info.IsMasterActual = !info.IsMasterActual
-		}()
 		info.IsReturnToMaster = true
+		receiveChan, ok := s.returnToMasterChannels[info.MasterIP]
+		if !ok {
+			panic("Нет канала для возврата на мастер для " + info.MasterIP)
+		}
+		s.listener.Receive(info.MasterIP, net_listener.Info{
+			Id:          info.Id,
+			ReceiveChan: receiveChan,
+		})
 	} else {
 		s.listener.Stop(info.MasterIP)
 		info.IsReturnToMaster = false
+	}
+}
+
+func (s *service) returnToMasterListener() {
+	for _, ch := range s.returnToMasterChannels {
+		go func(c chan int) {
+			for filterId := range c {
+				if fil, ok := s.db[filterId]; ok {
+					if !fil.IsMasterActual {
+						s.ChangeFilter(fil)
+						fil.IsMasterActual = !fil.IsMasterActual
+					}
+				}
+			}
+		}(ch)
 	}
 }

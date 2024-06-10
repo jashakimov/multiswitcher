@@ -10,12 +10,12 @@ import (
 )
 
 type Listener interface {
-	Receive(ip string, receiveChan chan struct{})
+	Receive(ip string, info Info)
 	Stop(ip string)
 }
 
 type service struct {
-	ips          *utils.SyncMap[string, chan struct{}]
+	ips          *utils.SyncMap[string, Info]
 	packetSource *gopacket.PacketSource
 }
 
@@ -31,7 +31,7 @@ func NewService(iname string) Listener {
 	}
 
 	s := service{
-		ips:          utils.NewSyncMap[string, chan struct{}](),
+		ips:          utils.NewSyncMap[string, Info](),
 		packetSource: gopacket.NewPacketSource(handle, handle.LinkType()),
 	}
 
@@ -40,9 +40,9 @@ func NewService(iname string) Listener {
 	return &s
 }
 
-func (s *service) Receive(ip string, receiveChan chan struct{}) {
+func (s *service) Receive(ip string, info Info) {
 	fmt.Println("Добавляем прослушку ", ip)
-	s.ips.Set(ip, receiveChan)
+	s.ips.Set(ip, info)
 }
 
 func (s *service) Stop(ip string) {
@@ -57,10 +57,9 @@ func (s *service) listen() {
 			if !ok {
 				continue
 			}
-			if ch, ok := s.ips.Get(pack.DstIP.String()); ok {
-				fmt.Println("Пришли байты с ", pack.DstIP.String(), " переключаемся обратно на мастер")
-				ch <- struct{}{}
-				s.Stop(pack.DstIP.String())
+			dspIp := pack.DstIP.String()
+			if ch, ok := s.ips.Get(dspIp); ok {
+				ch.ReceiveChan <- ch.Id
 			}
 		}
 	}
