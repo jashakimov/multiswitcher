@@ -58,9 +58,15 @@ func (s *service) runJoinWorker(f *filter.Filter) {
 	s.workingPool[f.Id] = conn
 
 	loop := time.NewTicker(2 * time.Second)
+	masterIP := net.ParseIP(f.MasterIP)
+	slaveIP := net.ParseIP(f.SlaveIP)
+
 	// пакеты для Join report
-	masterPacketJoin := s.newIgmpMsg(JoinReport, net.ParseIP(f.MasterIP))
-	slavePacketJoin := s.newIgmpMsg(JoinReport, net.ParseIP(f.SlaveIP))
+	masterPacketJoin := s.newIgmpMsg(JoinReport, masterIP)
+	slavePacketJoin := s.newIgmpMsg(JoinReport, slaveIP)
+	// присоединяемся к группе
+	conn.Join(f.InterfaceName, masterIP)
+	conn.Join(f.InterfaceName, slaveIP)
 
 	// меняем статус, что отправка igmp включена
 	f.IsIgmpOn = true
@@ -68,8 +74,8 @@ func (s *service) runJoinWorker(f *filter.Filter) {
 	for {
 		select {
 		case <-loop.C:
-			go conn.Send(masterPacketJoin, net.ParseIP(f.MasterIP))
-			go conn.Send(slavePacketJoin, net.ParseIP(f.SlaveIP))
+			go conn.Send(masterPacketJoin, masterIP)
+			go conn.Send(slavePacketJoin, slaveIP)
 		case id := <-s.stopSendingJoinPeportChan:
 			if id == f.Id {
 				return
@@ -134,8 +140,13 @@ func (s *service) runLeaveWorker(f *filter.Filter) {
 		s.stopSendingJoinPeportChan <- f.Id
 	}()
 
-	go conn.Send(s.newIgmpMsg(LeaveGroup, net.ParseIP(f.MasterIP)), net.ParseIP(f.MasterIP))
-	go conn.Send(s.newIgmpMsg(LeaveGroup, net.ParseIP(f.SlaveIP)), net.ParseIP(f.SlaveIP))
+	masterIP := net.ParseIP(f.MasterIP)
+	slaveIP := net.ParseIP(f.SlaveIP)
+
+	go conn.Send(s.newIgmpMsg(LeaveGroup, masterIP), masterIP)
+	go conn.Send(s.newIgmpMsg(LeaveGroup, slaveIP), slaveIP)
+	conn.Leave(f.InterfaceName, masterIP)
+	conn.Leave(f.InterfaceName, slaveIP)
 
 	conn.Close()
 	// удаляем соединение из пула
