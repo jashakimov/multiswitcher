@@ -7,7 +7,6 @@ import (
 	"github.com/jashakimov/multiswitcher/internal/service/filter"
 	"gopkg.in/errgo.v2/fmt/errors"
 	"net"
-	"time"
 )
 
 const JoinReport = 0x16
@@ -57,31 +56,31 @@ func (s *service) runJoinWorker(f *filter.Filter) {
 	}
 	s.workingPool[f.Id] = conn
 
-	loop := time.NewTicker(2 * time.Second)
-	masterIP := net.ParseIP(f.MasterIP)
-	slaveIP := net.ParseIP(f.SlaveIP)
+	//loop := time.NewTicker(2 * time.Second)
+	//masterIP := net.ParseIP(f.MasterIP)
+	//slaveIP := net.ParseIP(f.SlaveIP)
 
 	// пакеты для Join report
-	masterPacketJoin := s.newIgmpMsg(JoinReport, masterIP)
-	slavePacketJoin := s.newIgmpMsg(JoinReport, slaveIP)
+	//masterPacketJoin := s.newIgmpMsg(JoinReport, masterIP)
+	//slavePacketJoin := s.newIgmpMsg(JoinReport, slaveIP)
 	// присоединяемся к группе
-	conn.Join(f.CopyFromInterface, masterIP)
-	conn.Join(f.CopyFromInterface, slaveIP)
+	conn.Join(f.CopyFromInterface, f.MasterIP)
+	conn.Join(f.CopyFromInterface, f.SlaveIP)
 
 	// меняем статус, что отправка igmp включена
 	f.IsIgmpOn = true
 
-	for {
-		select {
-		case <-loop.C:
-			go conn.Send(masterPacketJoin, masterIP)
-			go conn.Send(slavePacketJoin, slaveIP)
-		case id := <-s.stopSendingJoinPeportChan:
-			if id == f.Id {
-				return
-			}
-		}
-	}
+	//for {
+	//	select {
+	//	case <-loop.C:
+	//		go conn.Send(masterPacketJoin, masterIP)
+	//		go conn.Send(slavePacketJoin, slaveIP)
+	//	case id := <-s.stopSendingJoinPeportChan:
+	//		if id == f.Id {
+	//			return
+	//		}
+	//	}
+	//}
 }
 
 func (s *service) ToggleByID(ctx context.Context, id int, msg byte) error {
@@ -136,22 +135,22 @@ func (s *service) runLeaveWorker(f *filter.Filter) {
 		return
 	}
 
-	go func() {
-		s.stopSendingJoinPeportChan <- f.Id
-	}()
+	//go func() {
+	//	s.stopSendingJoinPeportChan <- f.Id
+	//}()
 
 	// меняем статус, что отправка igmp выключен
 	f.IsIgmpOn = false
 
-	masterIP := net.ParseIP(f.MasterIP)
-	slaveIP := net.ParseIP(f.SlaveIP)
+	//masterIP := net.ParseIP(f.MasterIP)
+	//slaveIP := net.ParseIP(f.SlaveIP)
 
-	go conn.Send(s.newIgmpMsg(LeaveGroup, masterIP), masterIP)
-	go conn.Send(s.newIgmpMsg(LeaveGroup, slaveIP), slaveIP)
-	conn.Leave(f.CopyFromInterface, masterIP)
-	conn.Leave(f.CopyFromInterface, slaveIP)
+	//go conn.Send(s.newIgmpMsg(LeaveGroup, masterIP), masterIP)
+	//go conn.Send(s.newIgmpMsg(LeaveGroup, slaveIP), slaveIP)
+	conn.Leave(f.CopyFromInterface, f.MasterIP)
+	conn.Leave(f.CopyFromInterface, f.SlaveIP)
 
-	conn.Close()
+	//conn.Close()
 	// удаляем соединение из пула
 	defer delete(s.workingPool, f.Id)
 }
