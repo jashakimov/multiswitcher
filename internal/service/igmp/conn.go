@@ -55,6 +55,17 @@ func (c *connection) Leave(iface string, ip string) {
 	//	return
 	//}
 
+	// sudo ip addr del 226.0.0.59 dev eth1
+	cmd := exec.Command(
+		"ip", "addr", "del", ip, "dev", iface,
+	)
+	log.Println("Отписка от потока", cmd.String())
+	if _, err := cmd.Output(); err != nil {
+		log.Println("Ошибка отписки")
+	}
+}
+
+func (c *connection) Join(iface string, ip string) {
 	//sudo ip addr add 226.0.0.59 dev eth1 autojoin
 	cmd := exec.Command(
 		"ip", "addr", "add", ip, "dev", iface, "autojoin",
@@ -63,9 +74,6 @@ func (c *connection) Leave(iface string, ip string) {
 	if _, err := cmd.Output(); err != nil {
 		log.Println("Ошибка подписки")
 	}
-}
-
-func (c *connection) Join(iface string, ip string) {
 	//i, err := net.InterfaceByName(iface)
 	//if err != nil {
 	//	fmt.Printf("Ошибка при подписке на группу: %v\n", err)
@@ -76,13 +84,4 @@ func (c *connection) Join(iface string, ip string) {
 	//	fmt.Printf("Ошибка при подписке на группу: %v\n", err)
 	//	return
 	//}
-
-	// sudo ip addr del 226.0.0.59 dev eth1
-	cmd := exec.Command(
-		"ip", "addr", "del", ip, "dev", iface,
-	)
-	log.Println("Отписка от потока", cmd.String())
-	if _, err := cmd.Output(); err != nil {
-		log.Println("Ошибка отписки")
-	}
 }
