@@ -1,21 +1,49 @@
 {
     "interface": "lo",
-    "copyTrafficFrom": "bond0",
     "port": "9000",
     "statsFrequencyMs": 1200,
-    "hostname": "macbook",
+    "copyTrafficFrom": "eth0",
+    "hostname": "prigles",
     "filters": [
         {
             "route": "233.0.0.1",
             "switchTries": 3,
             "autoSwitch": true,
-            "title": "название связки",
+            "title": "test1",
             "master": {
-                "ip": "127.0.0.5",
+                "ip": "127.200.0.1",
                 "priority": 1
             },
             "slave": {
-                "ip": "127.0.0.3",
+                "ip": "127.254.0.1",
+                "priority": 12
+            }
+        },
+        {
+            "route": "233.0.2.1",
+            "switchTries": 3,
+            "autoSwitch": true,
+            "title": "test2",
+            "master": {
+                "ip": "127.200.2.1",
+                "priority": 1
+            },
+            "slave": {
+                "ip": "127.254.2.1",
+                "priority": 12
+            }
+        },
+        {
+            "route": "233.0.3.1",
+            "switchTries": 3,
+            "autoSwitch": true,
+            "title": "test3",
+            "master": {
+                "ip": "127.200.3.1",
+                "priority": 1
+            },
+            "slave": {
+                "ip": "127.254.3.1",
                 "priority": 12
             }
         }
