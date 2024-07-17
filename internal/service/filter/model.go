@@ -14,19 +14,20 @@ type Cfg struct {
 }
 
 type Filter struct {
-	Id               int      `json:"id"`
-	InterfaceName    string   `json:"interfaceName"`
-	MasterIP         string   `json:"masterIP"`
-	Hostname         string   `json:"hostname"`
-	SlaveIP          string   `json:"slaveIP"`
-	DstIP            string   `json:"dstIP"`
-	Title            string   `json:"title"`
-	IsMasterActual   bool     `json:"isMasterActual"`
-	IsIgmpOn         bool     `json:"isIgmpOn"`
-	IsReturnToMaster bool     `json:"isReturnToMaster"`
-	MasterBytes      *big.Int `json:"masterBytes"`
-	SlaveBytes       *big.Int `json:"slaveBytes"`
-	Cfg              Cfg      `json:"config"`
+	Id                int      `json:"id"`
+	InterfaceName     string   `json:"interfaceName"`
+	CopyFromInterface string   `json:"-"`
+	MasterIP          string   `json:"masterIP"`
+	Hostname          string   `json:"hostname"`
+	SlaveIP           string   `json:"slaveIP"`
+	DstIP             string   `json:"dstIP"`
+	Title             string   `json:"title"`
+	IsMasterActual    bool     `json:"isMasterActual"`
+	IsIgmpOn          bool     `json:"isIgmpOn"`
+	IsReturnToMaster  bool     `json:"isReturnToMaster"`
+	MasterBytes       *big.Int `json:"masterBytes"`
+	SlaveBytes        *big.Int `json:"slaveBytes"`
+	Cfg               Cfg      `json:"config"`
 }
 
 var mu sync.Mutex

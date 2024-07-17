@@ -65,8 +65,8 @@ func (s *service) runJoinWorker(f *filter.Filter) {
 	masterPacketJoin := s.newIgmpMsg(JoinReport, masterIP)
 	slavePacketJoin := s.newIgmpMsg(JoinReport, slaveIP)
 	// присоединяемся к группе
-	conn.Join(f.InterfaceName, masterIP)
-	conn.Join(f.InterfaceName, slaveIP)
+	conn.Join(f.CopyFromInterface, masterIP)
+	conn.Join(f.CopyFromInterface, slaveIP)
 
 	// меняем статус, что отправка igmp включена
 	f.IsIgmpOn = true
@@ -140,13 +140,16 @@ func (s *service) runLeaveWorker(f *filter.Filter) {
 		s.stopSendingJoinPeportChan <- f.Id
 	}()
 
+	// меняем статус, что отправка igmp выключен
+	f.IsIgmpOn = false
+
 	masterIP := net.ParseIP(f.MasterIP)
 	slaveIP := net.ParseIP(f.SlaveIP)
 
 	go conn.Send(s.newIgmpMsg(LeaveGroup, masterIP), masterIP)
 	go conn.Send(s.newIgmpMsg(LeaveGroup, slaveIP), slaveIP)
-	conn.Leave(f.InterfaceName, masterIP)
-	conn.Leave(f.InterfaceName, slaveIP)
+	conn.Leave(f.CopyFromInterface, masterIP)
+	conn.Leave(f.CopyFromInterface, slaveIP)
 
 	conn.Close()
 	// удаляем соединение из пула
