@@ -54,7 +54,7 @@ func (s *service) runJoinWorker(f *filter.Filter) {
 	if err != nil {
 		return
 	}
-	s.workingPool[f.Id] = conn
+	//s.workingPool[f.Id] = conn
 
 	//loop := time.NewTicker(2 * time.Second)
 	//masterIP := net.ParseIP(f.MasterIP)
@@ -130,8 +130,12 @@ func (s *service) calculateChecksum(data []byte) uint16 {
 }
 
 func (s *service) runLeaveWorker(f *filter.Filter) {
-	conn, ok := s.workingPool[f.Id]
-	if !ok {
+	//conn, ok := s.workingPool[f.Id]
+	//if !ok {
+	//	return
+	//}
+	conn, err := NewConnection(f.DstIP)
+	if err != nil {
 		return
 	}
 
